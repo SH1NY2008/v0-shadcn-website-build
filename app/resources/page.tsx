@@ -46,13 +46,25 @@ export default async function ResourcesPage() {
         <div className="space-y-12">
           {courses.map((course, idx) => (
             <section key={idx}>
-              <div className="mb-6 flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${course.color} text-white`}>
-                  <course.icon className="h-5 w-5" />
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${course.color} text-white`}>
+                    <course.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight">{course.name}</h2>
+                    <p className="text-sm text-muted-foreground">Video lessons from Khan Academy</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight">{course.name}</h2>
-                  <p className="text-sm text-muted-foreground">Video lessons from Khan Academy</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="gap-2 bg-transparent">
+                    <Download className="h-4 w-4" />
+                    Practice Worksheets
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-2 bg-transparent">
+                    <Download className="h-4 w-4" />
+                    Formula Sheets
+                  </Button>
                 </div>
               </div>
 

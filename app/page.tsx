@@ -22,7 +22,7 @@ export default function LandingPage() {
       <NavHeader />
 
       {/* Hero Section */}
-      <section className="container px-4 py-16 md:py-24">
+      <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="mx-auto max-w-4xl text-center">
           <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20" variant="outline">
             High School Math Mastery Platform
@@ -48,7 +48,7 @@ export default function LandingPage() {
 
       {/* Stats Section */}
       <section className="border-y bg-muted/30 py-12">
-        <div className="container px-4">
+        <div className="container mx-auto px-4">
           <div className="grid gap-8 sm:grid-cols-3">
             <div className="text-center">
               <div className="mb-2 text-4xl font-bold text-primary">6</div>
@@ -67,7 +67,7 @@ export default function LandingPage() {
       </section>
 
       {/* Progress/Courses Section */}
-      <section className="container px-4 py-16 md:py-24">
+      <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="mb-12 text-center">
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl">Your Math Journey</h2>
           <p className="text-lg text-muted-foreground text-pretty">
@@ -107,7 +107,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="border-y bg-muted/30 py-16 md:py-24">
-        <div className="container px-4">
+        <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
               Everything You Need to Succeed
@@ -206,7 +206,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container px-4 py-16 md:py-24">
+      <section className="container mx-auto px-4 py-16 md:py-24">
         <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
           <CardContent className="p-8 md:p-12">
             <div className="mx-auto max-w-2xl text-center">
@@ -246,7 +246,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t py-8">
-        <div className="container px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>© 2026 Numeria.inc. Empowering students to master mathematics.</p>
         </div>
       </footer>
