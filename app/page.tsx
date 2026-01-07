@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, TrendingUp, Award, BookOpen, Brain, Target, ChevronRight, Check } from "lucide-react"
+import { Calculator, TrendingUp, Award, BookOpen, Brain, Target, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
 export default function LandingPage() {
@@ -203,45 +203,6 @@ export default function LandingPage() {
             </Card>
           </div>
         </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
-          <CardContent className="p-8 md:p-12">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="mb-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-                Ready to Excel in Math?
-              </h2>
-              <p className="mb-8 text-lg text-muted-foreground text-pretty">
-                Join thousands of students mastering high school mathematics with Numeria.inc
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Button size="lg" className="gap-2 bg-primary hover:bg-primary/90">
-                  Get Started Now
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button size="lg" variant="outline">
-                  Schedule a Demo
-                </Button>
-              </div>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span>Free to start</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span>No credit card required</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span>Cancel anytime</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </section>
 
       {/* Footer */}

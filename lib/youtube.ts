@@ -45,6 +45,43 @@ export async function getKhanAcademyVideos(topic: string): Promise<YouTubeVideo[
   }
 }
 
+export async function getKhanAcademyVideoForTopic(videoQuery: string): Promise<YouTubeVideo | null> {
+  try {
+    const apiKey = process.env.YOUTUBE_API_KEY
+
+    if (!apiKey) {
+      return null
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${KHAN_ACADEMY_CHANNEL_ID}&q=${encodeURIComponent(videoQuery)}&type=video&maxResults=1&key=${apiKey}`,
+    )
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+
+    if (!data.items || data.items.length === 0) {
+      return null
+    }
+
+    const item = data.items[0]
+    return {
+      id: item.id.videoId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnail: item.snippet.thumbnails.medium.url,
+      duration: "10-15 min",
+      channelTitle: item.snippet.channelTitle,
+    }
+  } catch (error) {
+    console.log("[v0] Error fetching YouTube video for topic:", error)
+    return null
+  }
+}
+
 function getMockKhanAcademyVideos(topic: string): YouTubeVideo[] {
   const mockVideos = {
     "Algebra 1": [
