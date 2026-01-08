@@ -1,67 +1,113 @@
-import { NavHeader } from "@/components/nav-header"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, TrendingUp, Award, BookOpen, Target } from "lucide-react"
-
-export default function DashboardPage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <NavHeader />
-
-      <main className="container mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Welcome back, Alex</h1>
-          <p className="text-lg text-muted-foreground">Track your progress in high school mathematics</p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Study Hours</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">12.5</div>
-              <p className="text-xs text-muted-foreground">+2.5 from last week</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">3</div>
-              <p className="text-xs text-muted-foreground">Algebra 2, Pre-Calc, Calc 1</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">67%</div>
-              <p className="text-xs text-muted-foreground">+8% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Achievements</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">12</div>
-              <p className="text-xs text-muted-foreground">2 new this week</p>
-            </CardContent>
-          </Card>
-        </div>
+ "use client"
+ 
+ import { NavHeader } from "@/components/nav-header"
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+ import { Progress } from "@/components/ui/progress"
+ import { Button } from "@/components/ui/button"
+ import { Badge } from "@/components/ui/badge"
+ import { Calendar, Clock, TrendingUp, Award, BookOpen, Target } from "lucide-react"
+ import { useEffect, useState } from "react"
+ import { auth } from "@/lib/firebase"
+ import { onAuthStateChanged, type User } from "firebase/auth"
+ import { collection, getDocs } from "firebase/firestore"
+ import { db } from "@/lib/firebase"
+ import { curriculum } from "@/lib/curriculum"
+ 
+ export default function DashboardPage() {
+   const [user, setUser] = useState<User | null>(null)
+   const [studyHours, setStudyHours] = useState<number>(0)
+   const [activeCourses, setActiveCourses] = useState<number>(0)
+   const [overallProgress, setOverallProgress] = useState<number>(0)
+   const [achievements, setAchievements] = useState<number>(0)
+ 
+   useEffect(() => {
+     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
+     return () => unsub()
+   }, [])
+ 
+   const name = user?.displayName || "Student"
+ 
+   useEffect(() => {
+     const run = async () => {
+       if (!user) return
+       const courseIds = curriculum.map((c) => c.id)
+       let active = 0
+       let totalTopics = 0
+       let completedTopics = 0
+       for (const courseId of courseIds) {
+         const total = curriculum.find((c) => c.id === courseId)?.units.reduce((acc, u) => acc + u.topics.length, 0) ?? 0
+         totalTopics += total
+         const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
+         const snaps = await getDocs(ref)
+         const completed = snaps.size
+         if (completed > 0) active += 1
+         completedTopics += completed
+       }
+       setActiveCourses(active)
+       setAchievements(completedTopics)
+       setStudyHours(Number((completedTopics * 0.25).toFixed(1)))
+       const percent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0
+       setOverallProgress(percent)
+     }
+     run()
+   }, [user])
+ 
+   return (
+     <div className="min-h-screen bg-background">
+       <NavHeader />
+ 
+       <main className="container mx-auto max-w-6xl px-4 py-8">
+         <div className="mb-8 text-center">
+          <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Welcome back, {name}</h1>
+           <p className="text-lg text-muted-foreground">Track your progress in high school mathematics</p>
+         </div>
+ 
+         {/* Stats Grid */}
+         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+           <Card>
+             <CardHeader className="flex flex-row items-center justify-between pb-2">
+               <CardTitle className="text-sm font-medium">Study Hours</CardTitle>
+               <Clock className="h-4 w-4 text-muted-foreground" />
+             </CardHeader>
+             <CardContent>
+              <div className="text-2xl font-bold text-primary">{studyHours}</div>
+              <p className="text-xs text-muted-foreground">Estimated from topic completions</p>
+              </CardContent>
+            </Card>
+ 
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+              <div className="text-2xl font-bold text-primary">{activeCourses}</div>
+              <p className="text-xs text-muted-foreground">Courses with progress</p>
+              </CardContent>
+            </Card>
+ 
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+              <div className="text-2xl font-bold text-primary">{overallProgress}%</div>
+              <p className="text-xs text-muted-foreground">Across all courses</p>
+              </CardContent>
+            </Card>
+ 
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Achievements</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+              <div className="text-2xl font-bold text-primary">{achievements}</div>
+              <p className="text-xs text-muted-foreground">Topics completed</p>
+              </CardContent>
+            </Card>
+          </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Current Courses */}
