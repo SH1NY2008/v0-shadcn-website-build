@@ -75,9 +75,6 @@ export default function SchedulePage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u)
-      if (!u) {
-        router.push("/google-signin")
-      }
     })
     return () => unsub()
   }, [router])
@@ -100,12 +97,11 @@ export default function SchedulePage() {
   }, [user])
 
   useEffect(() => {
-    if (!user) return
     setLoading(true)
     const publicQuery = query(collection(db, "sessions"), where("isPublic", "==", true))
-    const userQuery = query(collection(db, "sessions"), where("creatorId", "==", user.uid))
     let publicSessions: StudySession[] = []
     let userSessions: StudySession[] = []
+
     const mergeAndSet = () => {
       const merged = [...userSessions]
       for (const s of publicSessions) {
@@ -121,17 +117,39 @@ export default function SchedulePage() {
       setSessions(merged)
       setLoading(false)
     }
-    const unsubPublic = onSnapshot(publicQuery, (snap) => {
-      publicSessions = snap.docs.map((d) => d.data() as StudySession)
+
+    const unsubPublic = onSnapshot(
+      publicQuery,
+      (snap) => {
+        publicSessions = snap.docs.map((d) => d.data() as StudySession)
+        mergeAndSet()
+      },
+      () => {
+        setLoading(false)
+      },
+    )
+
+    let unsubUser: (() => void) | null = null
+    if (user) {
+      const userQuery = query(collection(db, "sessions"), where("creatorId", "==", user.uid))
+      unsubUser = onSnapshot(
+        userQuery,
+        (snap) => {
+          userSessions = snap.docs.map((d) => d.data() as StudySession)
+          mergeAndSet()
+        },
+        () => {
+          setLoading(false)
+        },
+      )
+    } else {
+      userSessions = []
       mergeAndSet()
-    })
-    const unsubUser = onSnapshot(userQuery, (snap) => {
-      userSessions = snap.docs.map((d) => d.data() as StudySession)
-      mergeAndSet()
-    })
+    }
+
     return () => {
       unsubPublic()
-      unsubUser()
+      if (unsubUser) unsubUser()
     }
   }, [user])
 
@@ -180,10 +198,6 @@ export default function SchedulePage() {
   const groupedSessions = groupSessionsByDate(sessions)
   const sortedDates = Object.keys(groupedSessions).sort()
 
-  if (!user) {
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <NavHeader />
@@ -194,12 +208,18 @@ export default function SchedulePage() {
             <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Math Study Schedule</h1>
             <p className="text-lg text-muted-foreground">Plan your math learning sessions</p>
           </div>
-          <CreateSessionDialog
-            userId={user.uid}
-            userName={user.displayName || "Student"}
-            userEmail={user.email || ""}
-            onSessionCreated={handleSessionCreated}
-          />
+          {user ? (
+            <CreateSessionDialog
+              userId={user.uid}
+              userName={user.displayName || "Student"}
+              userEmail={user.email || ""}
+              onSessionCreated={handleSessionCreated}
+            />
+          ) : (
+            <Button variant="outline" onClick={() => router.push("/google-signin")}>
+              Sign in to create session
+            </Button>
+          )}
         </div>
 
         {loading ? (
@@ -238,8 +258,8 @@ export default function SchedulePage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {dateSessions.map((session) => {
-                      const isCreator = session.creatorId === user.uid
-                      const isParticipant = session.participants.includes(user.uid)
+                      const isCreator = user ? session.creatorId === user.uid : false
+                      const isParticipant = user ? session.participants.includes(user.uid) : false
                       const course = curriculum.find((c) => c.id === session.courseId)
 
                       return (
@@ -349,9 +369,15 @@ export default function SchedulePage() {
                                       </Button>
                                     </>
                                   ) : (
-                                    <Button size="sm" onClick={() => handleJoinSession(session.id)}>
-                                      Join Session
-                                    </Button>
+                                    user ? (
+                                      <Button size="sm" onClick={() => handleJoinSession(session.id)}>
+                                        Join Session
+                                      </Button>
+                                    ) : (
+                                      <Button size="sm" variant="default" onClick={() => router.push("/google-signin")}>
+                                        Sign in to join
+                                      </Button>
+                                    )
                                   )}
                                 </>
                               ) : (
