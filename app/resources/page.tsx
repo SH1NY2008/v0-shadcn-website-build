@@ -52,13 +52,6 @@ export default function ResourcesPage() {
           <p className="text-lg text-muted-foreground">Khan Academy video lessons organized by unit and topic</p>
         </div>
 
-        <div className="mb-8">
-          <div className="relative mx-auto max-w-2xl">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search for topics, concepts, or formulas..." className="pl-9" />
-          </div>
-        </div>
-
         <div className="space-y-8">
           <Accordion type="multiple" className="space-y-4">
             {curriculum.map((course) => (

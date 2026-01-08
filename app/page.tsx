@@ -1,23 +1,66 @@
-import { cn } from "@/lib/utils"
-import { NavHeader } from "@/components/nav-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { EncryptedText } from "@/components/ui/encrypted-text"
-import { Calculator, TrendingUp, Award, BookOpen, Brain, Target, ChevronRight } from "lucide-react"
-import Link from "next/link"
+ "use client"
+ import { cn } from "@/lib/utils"
+ import { NavHeader } from "@/components/nav-header"
+ import { Button } from "@/components/ui/button"
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+ import { Progress } from "@/components/ui/progress"
+ import { Badge } from "@/components/ui/badge"
+ import { EncryptedText } from "@/components/ui/encrypted-text"
+ import { Calculator, TrendingUp, Award, BookOpen, Brain, Target, ChevronRight } from "lucide-react"
+ import Link from "next/link"
+ import { useEffect, useState } from "react"
+ import { auth } from "@/lib/firebase"
+ import { onAuthStateChanged, type User } from "firebase/auth"
+ import { collection, onSnapshot } from "firebase/firestore"
+ import { db } from "@/lib/firebase"
+ import { curriculum } from "@/lib/curriculum"
+ 
+ export default function LandingPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
 
-export default function LandingPage() {
-  const courses = [
-    { name: "Algebra 1", level: "Foundational", progress: 0, color: "bg-chart-1" },
-    { name: "Geometry", level: "Foundational", progress: 0, color: "bg-chart-2" },
-    { name: "Algebra 2 w/ Trig", level: "Intermediate", progress: 0, color: "bg-chart-3" },
-    { name: "Pre-Calculus", level: "Advanced", progress: 0, color: "bg-chart-4" },
-    { name: "Calculus 1", level: "Advanced", progress: 0, color: "bg-chart-5" },
-    { name: "Calculus 2", level: "Advanced", progress: 0, color: "bg-chart-1" },
-  ]
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u))
+    return () => unsub()
+  }, [])
 
+  useEffect(() => {
+    if (!user) {
+      setCoursePercents({})
+      return
+    }
+    const unsubs: Array<() => void> = []
+    for (const course of curriculum) {
+      const total = course.units.reduce((acc, u) => acc + u.topics.length, 0)
+      const ref = collection(db, "users", user.uid, "courses", course.id, "topics")
+      const unsub = onSnapshot(ref, (snap) => {
+        const completed = snap.size
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+        setCoursePercents((prev) => ({ ...prev, [course.id]: percent }))
+      })
+      unsubs.push(unsub)
+    }
+    return () => {
+      for (const u of unsubs) u()
+    }
+  }, [user])
+
+  const levelForCourse = (id: string): string => {
+    switch (id) {
+      case "algebra-1":
+      case "geometry":
+        return "Foundational"
+      case "algebra-2":
+        return "Intermediate"
+      case "precalculus":
+      case "calculus-1":
+      case "calculus-2":
+        return "Advanced"
+      default:
+        return "Course"
+    }
+  }
+ 
   return (
     <div className="min-h-screen">
       <NavHeader />
@@ -84,21 +127,21 @@ export default function LandingPage() {
 
         <div className="mx-auto max-w-4xl">
           <div className="grid gap-4 md:grid-cols-2">
-            {courses.map((course, index) => (
-              <Card key={index} className="transition-all hover:shadow-md">
+            {curriculum.map((course) => (
+              <Card key={course.id} className="transition-all hover:shadow-md">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-lg">{course.name}</CardTitle>
-                      <CardDescription>{course.level}</CardDescription>
+                      <CardDescription>{levelForCourse(course.id)}</CardDescription>
                     </div>
-                    <Badge variant="secondary" className={cn("", course.color, "text-white")}>
-                      {course.progress}%
+                    <Badge variant="secondary" className={cn("bg-primary", "text-white")}>
+                      {coursePercents[course.id] ?? 0}%
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Progress value={course.progress} className="h-2" />
+                  <Progress value={coursePercents[course.id] ?? 0} className="h-2" />
                   <Button variant="ghost" size="sm" className="mt-3 w-full gap-2" asChild>
                     <Link href="/resources">
                       View Course
