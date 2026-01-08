@@ -13,6 +13,8 @@ import { onAuthStateChanged, type User } from "firebase/auth"
 import { getAllUserSessions, joinSession, leaveSession, deleteSession, type StudySession } from "@/lib/sessions"
 import { curriculum } from "@/lib/curriculum"
 import { useRouter } from "next/navigation"
+import { collection, query, where, onSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 function generateGoogleCalendarLink(
   title: string,
@@ -97,6 +99,55 @@ export default function SchedulePage() {
     loadSessions()
   }, [user])
 
+  useEffect(() => {
+    if (!user) return
+    setLoading(true)
+    const publicQuery = query(collection(db, "sessions"), where("isPublic", "==", true))
+    const userQuery = query(collection(db, "sessions"), where("creatorId", "==", user.uid))
+    let publicSessions: StudySession[] = []
+    let userSessions: StudySession[] = []
+    const mergeAndSet = () => {
+      const merged = [...userSessions]
+      for (const s of publicSessions) {
+        if (!merged.find((m) => m.id === s.id)) {
+          merged.push(s)
+        }
+      }
+      merged.sort((a, b) => {
+        const dateA = new Date(a.date + " " + a.startTime)
+        const dateB = new Date(b.date + " " + b.startTime)
+        return dateA.getTime() - dateB.getTime()
+      })
+      setSessions(merged)
+      setLoading(false)
+    }
+    const unsubPublic = onSnapshot(publicQuery, (snap) => {
+      publicSessions = snap.docs.map((d) => d.data() as StudySession)
+      mergeAndSet()
+    })
+    const unsubUser = onSnapshot(userQuery, (snap) => {
+      userSessions = snap.docs.map((d) => d.data() as StudySession)
+      mergeAndSet()
+    })
+    return () => {
+      unsubPublic()
+      unsubUser()
+    }
+  }, [user])
+
+  const handleSessionCreated = (session: StudySession) => {
+    setSessions((prev) => {
+      if (prev.find((s) => s.id === session.id)) return prev
+      const next = [...prev, session]
+      next.sort((a, b) => {
+        const dateA = new Date(a.date + " " + a.startTime)
+        const dateB = new Date(b.date + " " + b.startTime)
+        return dateA.getTime() - dateB.getTime()
+      })
+      return next
+    })
+  }
+
   const handleJoinSession = async (sessionId: string) => {
     if (!user) return
     const success = await joinSession(sessionId, user.uid)
@@ -147,7 +198,7 @@ export default function SchedulePage() {
             userId={user.uid}
             userName={user.displayName || "Student"}
             userEmail={user.email || ""}
-            onSessionCreated={loadSessions}
+            onSessionCreated={handleSessionCreated}
           />
         </div>
 
@@ -202,10 +253,15 @@ export default function SchedulePage() {
                           </div>
                           <div className="flex-1 space-y-2">
                             <div className="flex items-start justify-between">
+                          
                               <div>
                                 <h4 className="font-semibold">{session.title}</h4>
                                 <p className="text-sm text-muted-foreground">{session.description}</p>
-                                {course && <p className="text-xs text-muted-foreground mt-1">Course: {course.title}</p>}
+                                {course && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Course: {course.name}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex gap-2">
                                 <Badge variant={session.isPublic ? "default" : "secondary"}>

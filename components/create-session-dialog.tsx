@@ -18,14 +18,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Loader2 } from "lucide-react"
-import { createSession } from "@/lib/sessions"
+import { createSession, type StudySession } from "@/lib/sessions"
 import { curriculum } from "@/lib/curriculum"
 
 interface CreateSessionDialogProps {
   userId: string
   userName: string
   userEmail: string
-  onSessionCreated: () => void
+  onSessionCreated: (session: StudySession) => void
 }
 
 export function CreateSessionDialog({ userId, userName, userEmail, onSessionCreated }: CreateSessionDialogProps) {
@@ -48,7 +48,7 @@ export function CreateSessionDialog({ userId, userName, userEmail, onSessionCrea
     setIsSubmitting(true)
 
     try {
-      await createSession(userId, userName, userEmail, {
+      const session = await createSession(userId, userName, userEmail, {
         title: formData.title,
         description: formData.description,
         courseId: formData.courseId,
@@ -57,6 +57,8 @@ export function CreateSessionDialog({ userId, userName, userEmail, onSessionCrea
         endTime: formData.endTime,
         isPublic: formData.isPublic === "public",
       })
+
+      onSessionCreated(session)
 
       setOpen(false)
       setFormData({
@@ -68,7 +70,6 @@ export function CreateSessionDialog({ userId, userName, userEmail, onSessionCrea
         endTime: "",
         isPublic: "public",
       })
-      onSessionCreated()
     } catch (error) {
       console.error("Failed to create session:", error)
       alert("Failed to create session. Please try again.")
