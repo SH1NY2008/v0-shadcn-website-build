@@ -4,21 +4,24 @@
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
  import { Progress } from "@/components/ui/progress"
  import { Button } from "@/components/ui/button"
- import { Badge } from "@/components/ui/badge"
- import { Calendar, Clock, TrendingUp, Award, BookOpen, Target } from "lucide-react"
- import { useEffect, useState } from "react"
- import { auth } from "@/lib/firebase"
- import { onAuthStateChanged, type User } from "firebase/auth"
- import { collection, getDocs } from "firebase/firestore"
- import { db } from "@/lib/firebase"
- import { curriculum } from "@/lib/curriculum"
+import { Badge } from "@/components/ui/badge"
+import { Calendar, Clock, TrendingUp, Award, BookOpen, Target } from "lucide-react"
+import { useEffect, useState } from "react"
+import { auth } from "@/lib/firebase"
+import { onAuthStateChanged, type User } from "firebase/auth"
+import { collection, getDocs, query, where, onSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { curriculum } from "@/lib/curriculum"
+import Link from "next/link"
  
  export default function DashboardPage() {
    const [user, setUser] = useState<User | null>(null)
    const [studyHours, setStudyHours] = useState<number>(0)
    const [activeCourses, setActiveCourses] = useState<number>(0)
-   const [overallProgress, setOverallProgress] = useState<number>(0)
-   const [achievements, setAchievements] = useState<number>(0)
+  const [overallProgress, setOverallProgress] = useState<number>(0)
+  const [achievements, setAchievements] = useState<number>(0)
+  const [weeklyCompleted, setWeeklyCompleted] = useState<number>(0)
+  const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
  
    useEffect(() => {
      const unsub = onAuthStateChanged(auth, (u) => setUser(u))
@@ -27,31 +30,62 @@
  
    const name = user?.displayName || "Student"
  
-   useEffect(() => {
-     const run = async () => {
-       if (!user) return
-       const courseIds = curriculum.map((c) => c.id)
-       let active = 0
-       let totalTopics = 0
-       let completedTopics = 0
-       for (const courseId of courseIds) {
-         const total = curriculum.find((c) => c.id === courseId)?.units.reduce((acc, u) => acc + u.topics.length, 0) ?? 0
-         totalTopics += total
-         const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
-         const snaps = await getDocs(ref)
-         const completed = snaps.size
-         if (completed > 0) active += 1
-         completedTopics += completed
-       }
-       setActiveCourses(active)
-       setAchievements(completedTopics)
-       setStudyHours(Number((completedTopics * 0.25).toFixed(1)))
-       const percent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0
-       setOverallProgress(percent)
-     }
-     run()
-   }, [user])
+  useEffect(() => {
+    const run = async () => {
+      if (!user) return
+      const courseIds = curriculum.map((c) => c.id)
+      let active = 0
+      let totalTopics = 0
+      let completedTopics = 0
+      let completedThisWeek = 0
+      const now = new Date()
+      const oneWeekAgo = new Date(now)
+      oneWeekAgo.setDate(now.getDate() - 7)
+      for (const courseId of courseIds) {
+        const total = curriculum.find((c) => c.id === courseId)?.units.reduce((acc, u) => acc + u.topics.length, 0) ?? 0
+        totalTopics += total
+        const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
+        const snaps = await getDocs(ref)
+        const completed = snaps.size
+        if (completed > 0) active += 1
+        completedTopics += completed
+        const recentQ = query(ref, where("completedAt", ">=", oneWeekAgo))
+        const recentSnaps = await getDocs(recentQ)
+        completedThisWeek += recentSnaps.size
+      }
+      setActiveCourses(active)
+      setAchievements(completedTopics)
+      setStudyHours(Number((completedTopics * 0.25).toFixed(1)))
+      const percent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0
+      setOverallProgress(percent)
+      setWeeklyCompleted(completedThisWeek)
+    }
+    run()
+  }, [user])
  
+  const weeklyLessonsPercent = Math.min(100, Math.round((weeklyCompleted / 5) * 100))
+  const weeklyStudyHours = Number((weeklyCompleted * 0.25).toFixed(1))
+  const weeklyHoursPercent = Math.min(100, Math.round((weeklyStudyHours / 10) * 100))
+
+  useEffect(() => {
+    if (!user) return
+    const ids = ["algebra-2", "precalculus", "calculus-1"]
+    const unsubs: Array<() => void> = []
+    for (const courseId of ids) {
+      const total =
+        curriculum.find((c) => c.id === courseId)?.units.reduce((acc, u) => acc + u.topics.length, 0) ?? 0
+      const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
+      const unsub = onSnapshot(ref, (snap) => {
+        const completed = snap.size
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+        setCoursePercents((prev) => ({ ...prev, [courseId]: percent }))
+      })
+      unsubs.push(unsub)
+    }
+    return () => {
+      for (const u of unsubs) u()
+    }
+  }, [user])
    return (
      <div className="min-h-screen bg-background">
        <NavHeader />
@@ -123,9 +157,11 @@
                     <h4 className="font-semibold">Algebra 2 w/ Trig</h4>
                     <p className="text-sm text-muted-foreground">Chapter 8: Trigonometric Functions</p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">65%</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                    {coursePercents["algebra-2"] ?? 0}%
+                  </Badge>
                 </div>
-                <Progress value={65} className="h-2" />
+                <Progress value={coursePercents["algebra-2"] ?? 0} className="h-2" />
               </div>
 
               <div className="space-y-2">
@@ -134,9 +170,11 @@
                     <h4 className="font-semibold">Pre-Calculus</h4>
                     <p className="text-sm text-muted-foreground">Chapter 3: Polynomial Functions</p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">42%</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                    {coursePercents["precalculus"] ?? 0}%
+                  </Badge>
                 </div>
-                <Progress value={42} className="h-2" />
+                <Progress value={coursePercents["precalculus"] ?? 0} className="h-2" />
               </div>
 
               <div className="space-y-2">
@@ -145,13 +183,15 @@
                     <h4 className="font-semibold">Calculus 1</h4>
                     <p className="text-sm text-muted-foreground">Chapter 1: Limits and Continuity</p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">18%</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                    {coursePercents["calculus-1"] ?? 0}%
+                  </Badge>
                 </div>
-                <Progress value={18} className="h-2" />
+                <Progress value={coursePercents["calculus-1"] ?? 0} className="h-2" />
               </div>
 
-              <Button className="w-full bg-transparent" variant="outline">
-                View All Courses
+              <Button className="w-full bg-transparent" variant="outline" asChild>
+                <Link href="/resources">View All Courses</Link>
               </Button>
             </CardContent>
           </Card>
@@ -170,22 +210,9 @@
                 <div className="flex-1 space-y-2">
                   <div className="flex items-start justify-between">
                     <h4 className="font-semibold">Complete 5 Lessons</h4>
-                    <span className="text-sm font-medium text-primary">3/5</span>
+                    <span className="text-sm font-medium text-primary">{weeklyCompleted}/5</span>
                   </div>
-                  <Progress value={60} className="h-2" />
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 rounded-lg border p-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <BookOpen className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <h4 className="font-semibold">Practice 20 Problems</h4>
-                    <span className="text-sm font-medium text-primary">14/20</span>
-                  </div>
-                  <Progress value={70} className="h-2" />
+                  <Progress value={weeklyLessonsPercent} className="h-2" />
                 </div>
               </div>
 
@@ -196,13 +223,11 @@
                 <div className="flex-1 space-y-2">
                   <div className="flex items-start justify-between">
                     <h4 className="font-semibold">Study 10 Hours</h4>
-                    <span className="text-sm font-medium text-primary">7.5/10</span>
+                    <span className="text-sm font-medium text-primary">{weeklyStudyHours}/10</span>
                   </div>
-                  <Progress value={75} className="h-2" />
+                  <Progress value={weeklyHoursPercent} className="h-2" />
                 </div>
               </div>
-
-              <Button className="w-full bg-primary hover:bg-primary/90">View All Goals</Button>
             </CardContent>
           </Card>
         </div>

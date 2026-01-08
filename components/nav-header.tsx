@@ -27,55 +27,47 @@ export function NavHeader() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <Calculator className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">
-            Numeria<span className="text-primary">.inc</span>
-          </span>
-        </Link>
-
-        <nav className="flex items-center gap-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Button
-                key={item.href}
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                asChild
-                className={cn("gap-2", isActive && "bg-primary/10 text-primary hover:bg-primary/20")}
-              >
-                <Link href={item.href}>
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{item.label}</span>
+    <header className="sticky top-0 z-50 w-full bg-transparent">
+      <div className="container mx-auto px-4 py-3 flex justify-center">
+        <div className="flex w-full max-w-6xl items-center justify-between rounded-2xl border border-white/10 bg-black/40 px-3 py-2 shadow-lg backdrop-blur">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 ring-1 ring-primary/30">
+              <Calculator className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold">Numeria</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "text-muted-foreground hover:text-foreground transition-colors",
+                    isActive && "text-foreground",
+                  )}
+                >
+                  {item.label}
                 </Link>
-              </Button>
-            )
-          })}
-          <div className="ml-2 flex items-center gap-2">
+              )
+            })}
+          </nav>
+          <div className="flex items-center gap-2">
             {user ? (
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                  <button className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent">
-                    <div className="h-8 w-8 overflow-hidden rounded-full border">
+                  <button className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/5">
+                    <div className="h-8 w-8 overflow-hidden rounded-full border border-white/10">
                       {user.photoURL ? (
-                        <img
-                          src={user.photoURL}
-                          alt={user.displayName ?? "Profile"}
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={user.photoURL} alt={user.displayName ?? "Profile"} className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-xs">
                           {user.displayName?.charAt(0).toUpperCase() ?? "U"}
                         </div>
                       )}
                     </div>
-                    <span className="hidden sm:inline text-sm">{user.displayName ?? "Account"}</span>
+                    <span className="hidden sm:inline">{user.displayName ?? "Account"}</span>
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content className="min-w-[180px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
@@ -105,20 +97,16 @@ export function NavHeader() {
               </DropdownMenu.Root>
             ) : (
               <>
-                <Button
-                  variant={pathname === "/google-signin" ? "secondary" : "outline"}
-                  size="sm"
-                  asChild
-                  className={cn("gap-2", pathname === "/google-signin" && "bg-primary/10 text-primary hover:bg-primary/20")}
-                >
-                  <Link href="/google-signin">
-                    <span className="hidden sm:inline">Google Sign-In</span>
-                  </Link>
+                <Link href="/google-signin" className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground">
+                  Log in
+                </Link>
+                <Button size="sm" className="rounded-full bg-white text-black hover:bg-white/90">
+                  Download
                 </Button>
               </>
             )}
           </div>
-        </nav>
+        </div>
       </div>
     </header>
   )
