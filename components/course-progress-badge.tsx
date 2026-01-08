@@ -31,4 +31,3 @@ export function CourseProgressBadge({ courseId, totalTopics }: { courseId: strin
     </Badge>
   )
 }
-

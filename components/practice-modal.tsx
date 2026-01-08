@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Loader2, RefreshCw, CheckCircle, XCircle, Calculator } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { generateMathProblem } from "@/app/actions/practice"
 
 interface MathProblem {
   expression: string
@@ -34,67 +35,16 @@ export function PracticeModal({ topicName = "General Math" }: PracticeModalProps
   const [showExplanation, setShowExplanation] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
 
-  const fetchProblemFromOpenRouter = async () => {
+  const fetchProblem = async () => {
     setLoading(true)
     setResult(null)
     setUserAnswer("")
     setShowExplanation(false)
     setErrorMessage("")
 
-    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
-    if (!apiKey) {
-      setErrorMessage("OpenRouter API key missing")
-      setLoading(false)
-      return
-    }
-
-    const prompt = `Generate a single practice problem for the topic: "${topicName}".
-Return ONLY a valid JSON object with this structure:
-{
-  "instruction": "string",
-  "expression": "string",
-  "answer": "string or number",
-  "explanation": "string"
-}`
-
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "mistralai/mistral-small-3.2-24b-instruct:free", // reliable free model
-          messages: [
-            { role: "system", content: "You are a JSON-only math problem generator." },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 500,
-        }),
-      })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null)
-        throw new Error((errData as any)?.error?.message || res.statusText || "OpenRouter API error")
-      }
-
-      const data = await res.json()
-      const text = data.choices?.[0]?.message?.content || ""
-      if (!text) throw new Error("No content returned from OpenRouter API")
-
-      const problemData = JSON.parse(text)
-      if (!problemData.expression || problemData.answer === undefined) {
-        throw new Error("Invalid problem structure returned by model")
-      }
-
-      setProblem({
-        instruction: problemData.instruction || "Solve",
-        expression: problemData.expression,
-        answer: problemData.answer,
-        explanation: problemData.explanation || "",
-      })
+      const problemData = await generateMathProblem(topicName)
+      setProblem(problemData)
     } catch (err) {
       console.error(err)
       setErrorMessage(err instanceof Error ? err.message : "Failed to generate problem.")
@@ -106,14 +56,13 @@ Return ONLY a valid JSON object with this structure:
   const checkAnswer = () => {
     if (!problem) return
 
-    const normalize = (val: string | number) =>
-      String(val).toLowerCase().replace(/\s+/g, "").replace(/,/g, "").trim()
+    const normalize = (val: string | number) => String(val).toLowerCase().replace(/\s+/g, "").replace(/,/g, "").trim()
 
     const userNormalized = normalize(userAnswer)
     const answerNormalized = normalize(problem.answer)
 
-    const userNum = parseFloat(userNormalized)
-    const answerNum = parseFloat(answerNormalized)
+    const userNum = Number.parseFloat(userNormalized)
+    const answerNum = Number.parseFloat(answerNormalized)
 
     if (!isNaN(userNum) && !isNaN(answerNum)) {
       if (Math.abs(userNum - answerNum) < 0.01) {
@@ -137,14 +86,17 @@ Return ONLY a valid JSON object with this structure:
     setUserAnswer("")
     setShowExplanation(false)
     setErrorMessage("")
-    fetchProblemFromOpenRouter()
+    fetchProblem()
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open)
-      if (open && !problem && !loading) fetchProblemFromOpenRouter()
-    }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open)
+        if (open && !problem && !loading) fetchProblem()
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Calculator className="w-4 h-4 mr-2" />
@@ -167,7 +119,9 @@ Return ONLY a valid JSON object with this structure:
             <div className="flex flex-col items-center justify-center py-8 space-y-3">
               <XCircle className="w-8 h-8 text-destructive" />
               <p className="text-sm text-center text-muted-foreground">{errorMessage}</p>
-              <Button onClick={handleNewProblem} variant="outline" size="sm">Try Again</Button>
+              <Button onClick={handleNewProblem} variant="outline" size="sm">
+                Try Again
+              </Button>
             </div>
           ) : problem ? (
             <>
@@ -182,15 +136,13 @@ Return ONLY a valid JSON object with this structure:
                   placeholder="Your answer"
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") checkAnswer() }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") checkAnswer()
+                  }}
                   disabled={result === "correct"}
                   className="text-center"
                 />
-                <Button
-                  onClick={checkAnswer}
-                  className="w-full"
-                  disabled={!userAnswer.trim() || result === "correct"}
-                >
+                <Button onClick={checkAnswer} className="w-full" disabled={!userAnswer.trim() || result === "correct"}>
                   Check Answer
                 </Button>
               </div>

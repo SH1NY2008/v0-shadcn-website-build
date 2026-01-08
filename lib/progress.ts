@@ -44,4 +44,3 @@ export async function getUserProgressSummary(uid: string) {
   }
   return { courseIds, topicCompleted, topicTotal }
 }
-

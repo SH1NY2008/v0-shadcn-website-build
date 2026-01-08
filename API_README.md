@@ -6,7 +6,7 @@ This API provides access to openly licensed OpenStax mathematics textbooks for h
 
 All endpoints return JSON with the following structure:
 
-```json
+\`\`\`json
 {
   "courseName": "Course Name",
   "openstaxBookTitle": "Book Title",
@@ -14,7 +14,7 @@ All endpoints return JSON with the following structure:
   "license": "CC BY",
   "source": "OpenStax"
 }
-```
+\`\`\`
 
 ### Available Endpoints
 

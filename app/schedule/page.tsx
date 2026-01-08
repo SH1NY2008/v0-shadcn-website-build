@@ -1,9 +1,18 @@
+"use client"
+
 import { NavHeader } from "@/components/nav-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Clock, Video, Users, BookOpen, Plus } from "lucide-react"
+import { CreateSessionDialog } from "@/components/create-session-dialog"
+import { InviteDialog } from "@/components/invite-dialog"
+import { Calendar, Clock, Users, BookOpen, Lock, Globe, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { auth } from "@/lib/firebase"
+import { onAuthStateChanged, type User } from "firebase/auth"
+import { getAllUserSessions, joinSession, leaveSession, deleteSession, type StudySession } from "@/lib/sessions"
+import { curriculum } from "@/lib/curriculum"
+import { useRouter } from "next/navigation"
 
 function generateGoogleCalendarLink(
   title: string,
@@ -16,7 +25,6 @@ function generateGoogleCalendarLink(
   const [startHour, startMinute] = startTime.split(":")
   const [endHour, endMinute] = endTime.split(":")
 
-  // Format: YYYYMMDDTHHmmSS
   const start = `${year}${month}${day}T${startHour}${startMinute}00`
   const end = `${year}${month}${day}T${endHour}${endMinute}00`
 
@@ -30,7 +38,101 @@ function generateGoogleCalendarLink(
   return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
+function formatTime(time: string): string {
+  const [hour, minute] = time.split(":")
+  const h = Number.parseInt(hour)
+  const ampm = h >= 12 ? "PM" : "AM"
+  const displayHour = h % 12 || 12
+  return `${displayHour}:${minute} ${ampm}`
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+}
+
+function groupSessionsByDate(sessions: StudySession[]): Record<string, StudySession[]> {
+  const grouped: Record<string, StudySession[]> = {}
+
+  for (const session of sessions) {
+    if (!grouped[session.date]) {
+      grouped[session.date] = []
+    }
+    grouped[session.date].push(session)
+  }
+
+  return grouped
+}
+
 export default function SchedulePage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [sessions, setSessions] = useState<StudySession[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u)
+      if (!u) {
+        router.push("/google-signin")
+      }
+    })
+    return () => unsub()
+  }, [router])
+
+  const loadSessions = async () => {
+    if (!user) return
+    setLoading(true)
+    try {
+      const allSessions = await getAllUserSessions(user.uid)
+      setSessions(allSessions)
+    } catch (error) {
+      console.error("Failed to load sessions:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadSessions()
+  }, [user])
+
+  const handleJoinSession = async (sessionId: string) => {
+    if (!user) return
+    const success = await joinSession(sessionId, user.uid)
+    if (success) {
+      loadSessions()
+    } else {
+      alert("Failed to join session. It may be private or no longer available.")
+    }
+  }
+
+  const handleLeaveSession = async (sessionId: string) => {
+    if (!user) return
+    const success = await leaveSession(sessionId, user.uid)
+    if (success) {
+      loadSessions()
+    }
+  }
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!user) return
+    if (!confirm("Are you sure you want to delete this session?")) return
+    const success = await deleteSession(sessionId, user.uid)
+    if (success) {
+      loadSessions()
+    } else {
+      alert("Failed to delete session. You can only delete sessions you created.")
+    }
+  }
+
+  const groupedSessions = groupSessionsByDate(sessions)
+  const sortedDates = Object.keys(groupedSessions).sort()
+
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <NavHeader />
@@ -41,332 +143,175 @@ export default function SchedulePage() {
             <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Math Study Schedule</h1>
             <p className="text-lg text-muted-foreground">Plan your math learning sessions</p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Session
-          </Button>
+          <CreateSessionDialog
+            userId={user.uid}
+            userName={user.displayName || "Student"}
+            userEmail={user.email || ""}
+            onSessionCreated={loadSessions}
+          />
         </div>
 
-        <Tabs defaultValue="week" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="week">This Week</TabsTrigger>
-            <TabsTrigger value="month">This Month</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          </TabsList>
+        {loading ? (
+          <Card>
+            <CardContent className="flex h-96 items-center justify-center">
+              <p className="text-muted-foreground">Loading sessions...</p>
+            </CardContent>
+          </Card>
+        ) : sessions.length === 0 ? (
+          <Card>
+            <CardContent className="flex h-96 flex-col items-center justify-center gap-4">
+              <Calendar className="h-16 w-16 text-muted-foreground" />
+              <div className="text-center">
+                <h3 className="text-lg font-semibold">No sessions scheduled</h3>
+                <p className="text-muted-foreground">Create your first study session to get started</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {sortedDates.map((date) => {
+              const dateSessions = groupedSessions[date]
+              const today = new Date().toISOString().split("T")[0]
+              const isToday = date === today
 
-          <TabsContent value="week" className="space-y-4">
-            {/* Monday */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Monday, January 6</CardTitle>
-                    <CardDescription>3 study sessions scheduled</CardDescription>
-                  </div>
-                  <Badge variant="secondary">Today</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-4 rounded-lg border bg-card p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Video className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
+              return (
+                <Card key={date}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-semibold">Calculus 1: Derivatives</h4>
-                        <p className="text-sm text-muted-foreground">Limit definition and power rule</p>
+                        <CardTitle>{formatDate(date)}</CardTitle>
+                        <CardDescription>{dateSessions.length} session(s) scheduled</CardDescription>
                       </div>
-                      <Badge>Live</Badge>
+                      {isToday && <Badge variant="secondary">Today</Badge>}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        2:00 PM - 3:30 PM
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        18 students
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm">Join Session</Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={generateGoogleCalendarLink(
-                            "Calculus 1: Derivatives",
-                            "Limit definition and power rule",
-                            "2026-01-06",
-                            "14:00",
-                            "15:30",
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gap-1"
-                        >
-                          <Calendar className="h-3 w-3" />
-                          Add to Calendar
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {dateSessions.map((session) => {
+                      const isCreator = session.creatorId === user.uid
+                      const isParticipant = session.participants.includes(user.uid)
+                      const course = curriculum.find((c) => c.id === session.courseId)
 
-                <div className="flex gap-4 rounded-lg border bg-card p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
-                    <BookOpen className="h-6 w-6 text-secondary" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold">Algebra 2: Quadratic Functions</h4>
-                        <p className="text-sm text-muted-foreground">Practice problems and graphing</p>
-                      </div>
-                      <Badge variant="outline">Self-paced</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        4:00 PM - 5:00 PM
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm">Start Learning</Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={generateGoogleCalendarLink(
-                            "Algebra 2: Quadratic Functions",
-                            "Practice problems and graphing",
-                            "2026-01-06",
-                            "16:00",
-                            "17:00",
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gap-1"
-                        >
-                          <Calendar className="h-3 w-3" />
-                          Add to Calendar
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 rounded-lg border bg-card p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                    <BookOpen className="h-6 w-6 text-accent" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold">Geometry: Triangle Proofs</h4>
-                        <p className="text-sm text-muted-foreground">Congruence theorems review</p>
-                      </div>
-                      <Badge variant="outline">Study</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        7:00 PM - 8:00 PM
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm">Start Learning</Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={generateGoogleCalendarLink(
-                            "Geometry: Triangle Proofs",
-                            "Congruence theorems review",
-                            "2026-01-06",
-                            "19:00",
-                            "20:00",
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gap-1"
-                        >
-                          <Calendar className="h-3 w-3" />
-                          Add to Calendar
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tuesday */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Tuesday, January 7</CardTitle>
-                <CardDescription>2 study sessions scheduled</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-4 rounded-lg border bg-card p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold">Pre-Calculus Study Group</h4>
-                        <p className="text-sm text-muted-foreground">Trigonometric identities workshop</p>
-                      </div>
-                      <Badge variant="secondary">Group</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        10:00 AM - 12:00 PM
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />8 students
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={generateGoogleCalendarLink(
-                            "Pre-Calculus Study Group",
-                            "Trigonometric identities workshop",
-                            "2026-01-07",
-                            "10:00",
-                            "12:00",
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gap-1"
-                        >
-                          <Calendar className="h-3 w-3" />
-                          Add to Calendar
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 rounded-lg border bg-card p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                    <Video className="h-6 w-6 text-accent" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold">Algebra 1: Linear Functions</h4>
-                        <p className="text-sm text-muted-foreground">Slope and graphing review</p>
-                      </div>
-                      <Badge>Live</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        3:00 PM - 4:30 PM
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        22 students
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={generateGoogleCalendarLink(
-                            "Algebra 1: Linear Functions",
-                            "Slope and graphing review",
-                            "2026-01-07",
-                            "15:00",
-                            "16:30",
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gap-1"
-                        >
-                          <Calendar className="h-3 w-3" />
-                          Add to Calendar
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Friday */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Friday, January 10</CardTitle>
-                <CardDescription>1 assessment scheduled</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 rounded-lg border bg-card p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Calendar className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold">Calculus 1: Unit 2 Quiz</h4>
-                        <p className="text-sm text-muted-foreground">Derivatives and applications</p>
-                      </div>
-                      <Badge variant="outline">Quiz</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        3:00 PM - 4:00 PM
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={generateGoogleCalendarLink(
-                            "Calculus 1: Unit 2 Quiz",
-                            "Derivatives and applications",
-                            "2026-01-10",
-                            "15:00",
-                            "16:00",
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gap-1"
-                        >
-                          <Calendar className="h-3 w-3" />
-                          Add to Calendar
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="month">
-            <Card>
-              <CardContent className="flex h-96 items-center justify-center">
-                <p className="text-muted-foreground">Calendar view coming soon</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="upcoming">
-            <Card>
-              <CardContent className="flex h-96 items-center justify-center">
-                <p className="text-muted-foreground">Upcoming sessions view</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      return (
+                        <div key={session.id} className="flex gap-4 rounded-lg border bg-card p-4">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            {session.isPublic ? (
+                              <Globe className="h-6 w-6 text-primary" />
+                            ) : (
+                              <Lock className="h-6 w-6 text-primary" />
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-semibold">{session.title}</h4>
+                                <p className="text-sm text-muted-foreground">{session.description}</p>
+                                {course && <p className="text-xs text-muted-foreground mt-1">Course: {course.title}</p>}
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge variant={session.isPublic ? "default" : "secondary"}>
+                                  {session.isPublic ? "Public" : "Private"}
+                                </Badge>
+                                {isCreator && <Badge variant="outline">Creator</Badge>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                {session.participants.length} participant(s)
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <BookOpen className="h-4 w-4" />
+                                by {isCreator ? "You" : session.creatorName}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {isCreator ? (
+                                <>
+                                  <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
+                                    <a
+                                      href={generateGoogleCalendarLink(
+                                        session.title,
+                                        session.description,
+                                        session.date,
+                                        session.startTime,
+                                        session.endTime,
+                                      )}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <Calendar className="h-3 w-3" />
+                                      Add to Calendar
+                                    </a>
+                                  </Button>
+                                  {session.isPublic && (
+                                    <InviteDialog
+                                      sessionTitle={session.title}
+                                      sessionDate={session.date}
+                                      sessionTime={session.startTime}
+                                    />
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="gap-1"
+                                    onClick={() => handleDeleteSession(session.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    Delete
+                                  </Button>
+                                </>
+                              ) : session.isPublic ? (
+                                <>
+                                  {isParticipant ? (
+                                    <>
+                                      <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
+                                        <a
+                                          href={generateGoogleCalendarLink(
+                                            session.title,
+                                            session.description,
+                                            session.date,
+                                            session.startTime,
+                                            session.endTime,
+                                          )}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          <Calendar className="h-3 w-3" />
+                                          Add to Calendar
+                                        </a>
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleLeaveSession(session.id)}
+                                      >
+                                        Leave Session
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button size="sm" onClick={() => handleJoinSession(session.id)}>
+                                      Join Session
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (
+                                <Badge variant="secondary">Private Session</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </main>
     </div>
   )

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { EncryptedText } from "@/components/ui/encrypted-text"
 import { Calculator, TrendingUp, Award, BookOpen, Brain, Target, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
@@ -28,7 +29,13 @@ export default function LandingPage() {
             High School Math Mastery Platform
           </Badge>
           <h1 className="mb-6 text-5xl font-bold tracking-tight text-balance sm:text-6xl md:text-7xl">
-            Master Math with <span className="text-primary">Numeria.inc</span>
+            <EncryptedText
+              text="Master Math with Numeria.inc"
+              className="inline-block"
+              encryptedClassName="text-muted-foreground"
+              revealedClassName="text-foreground"
+              revealDelayMs={40}
+            />
           </h1>
           <p className="mb-8 text-lg text-muted-foreground text-pretty md:text-xl">
             From Algebra to Calculus, experience interactive learning designed for high school students. Build
