@@ -127,7 +127,7 @@ export function CreateSessionDialog({ userId, userName, userEmail, onSessionCrea
               <SelectContent>
                 {curriculum.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
-                    {course.title}
+                    {course.name}
                   </SelectItem>
                 ))}
               </SelectContent>

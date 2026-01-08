@@ -1,7 +1,4 @@
 "use client"
-
-import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,10 +14,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Send, Loader2 } from "lucide-react"
+import { CalendarIcon, Send, Copy, Check } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { sendStudyInvite } from "@/app/actions/email"
 
 interface InviteDialogProps {
   sessionTitle?: string
@@ -31,8 +27,7 @@ interface InviteDialogProps {
 export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteDialogProps) {
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState<Date | undefined>(sessionDate ? new Date(sessionDate) : undefined)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState({
     friendName: "",
     friendEmail: "",
@@ -40,38 +35,31 @@ export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteD
     message: "",
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isSubmitting) return
+  const generateInviteMessage = () => {
+    return `Hey ${formData.friendName}!
 
-    setIsSubmitting(true)
-    setIsSuccess(false)
+I'd like to invite you to join me for a study session on Numeria.inc:
 
-    try {
-      await sendStudyInvite({
-        friendName: formData.friendName,
-        friendEmail: formData.friendEmail,
-        sessionTitle: sessionTitle || "Math Study Session",
-        sessionDate: date ? format(date, "MMMM do, yyyy") : "TBD",
-        sessionTime: formData.time,
-        message: formData.message,
-      })
+📚 Session: ${sessionTitle || "Math Study Session"}
+📅 Date: ${date ? format(date, "MMMM do, yyyy") : "TBD"}
+⏰ Time: ${formData.time || "TBD"}
 
-      setIsSuccess(true)
-      setTimeout(() => {
-        setOpen(false)
-        setIsSuccess(false)
-        setFormData({ friendName: "", friendEmail: "", time: sessionTime || "", message: "" })
-        setDate(sessionDate ? new Date(sessionDate) : undefined)
-      }, 2000)
-    } catch (error) {
-      console.error("Email sending failed:", error)
-      alert(
-        error instanceof Error ? error.message : "Failed to send invitation. Please check your EmailJS configuration.",
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+${formData.message ? `Message: ${formData.message}\n\n` : ""}Join me at: ${window.location.origin}
+
+Looking forward to studying together!`
+  }
+
+  const handleCopyInvite = async () => {
+    const message = generateInviteMessage()
+    await navigator.clipboard.writeText(message)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleEmailInvite = () => {
+    const subject = encodeURIComponent(`Study Session Invite: ${sessionTitle || "Math Study"}`)
+    const body = encodeURIComponent(generateInviteMessage())
+    window.open(`mailto:${formData.friendEmail}?subject=${subject}&body=${body}`)
   }
 
   return (
@@ -86,10 +74,10 @@ export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteD
         <DialogHeader>
           <DialogTitle>Invite a Friend to Study</DialogTitle>
           <DialogDescription>
-            Send an email invitation to study together for {sessionTitle || "a math session"}
+            Create an invitation to study together for {sessionTitle || "a math session"}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="friendName">Friend's Name</Label>
             <Input
@@ -109,7 +97,6 @@ export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteD
               placeholder="friend@example.com"
               value={formData.friendEmail}
               onChange={(e) => setFormData({ ...formData, friendEmail: e.target.value })}
-              required
             />
           </div>
 
@@ -137,8 +124,7 @@ export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteD
               id="time"
               type="time"
               value={formData.time}
-              onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-              required
+              onChange={(e) => setFormData({ ...formData, time: e.target.time })}
             />
           </div>
 
@@ -154,26 +140,36 @@ export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteD
           </div>
 
           <div className="flex gap-2">
-            <Button type="button" variant="outline" className="flex-1 bg-transparent" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1 gap-2" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 gap-2 bg-transparent"
+              onClick={handleCopyInvite}
+              disabled={!formData.friendName}
+            >
+              {copied ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sending...
+                  <Check className="h-4 w-4" />
+                  Copied!
                 </>
-              ) : isSuccess ? (
-                "Sent!"
               ) : (
                 <>
-                  <Send className="h-4 w-4" />
-                  Send Invite
+                  <Copy className="h-4 w-4" />
+                  Copy Invite
                 </>
               )}
             </Button>
+            <Button
+              type="button"
+              className="flex-1 gap-2"
+              onClick={handleEmailInvite}
+              disabled={!formData.friendName || !formData.friendEmail}
+            >
+              <Send className="h-4 w-4" />
+              Open Email
+            </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
