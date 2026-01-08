@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CreateSessionDialog } from "@/components/create-session-dialog"
-import { InviteDialog } from "@/components/invite-dialog"
-import { Calendar, Clock, Users, BookOpen, Lock, Globe, Trash2 } from "lucide-react"
+import { Calendar, Clock, Users, BookOpen, Lock, Globe, Trash2, Video } from "lucide-react"
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
@@ -38,6 +37,10 @@ function generateGoogleCalendarLink(
   })
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function generateJitsiLink(sessionId: string): string {
+  return `https://meet.jit.si/NumeriaStudy-${sessionId}`
 }
 
 function formatTime(time: string): string {
@@ -323,13 +326,12 @@ export default function SchedulePage() {
                                       Add to Calendar
                                     </a>
                                   </Button>
-                                  {session.isPublic && (
-                                    <InviteDialog
-                                      sessionTitle={session.title}
-                                      sessionDate={session.date}
-                                      sessionTime={session.startTime}
-                                    />
-                                  )}
+                                  <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
+                                    <a href={generateJitsiLink(session.id)} target="_blank" rel="noopener noreferrer">
+                                      <Video className="h-3 w-3" />
+                                      Start Call (Moderator)
+                                    </a>
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="destructive"
@@ -358,6 +360,12 @@ export default function SchedulePage() {
                                         >
                                           <Calendar className="h-3 w-3" />
                                           Add to Calendar
+                                        </a>
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
+                                        <a href={generateJitsiLink(session.id)} target="_blank" rel="noopener noreferrer">
+                                          <Video className="h-3 w-3" />
+                                          Join Call
                                         </a>
                                       </Button>
                                       <Button

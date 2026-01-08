@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Send, Copy, Check } from "lucide-react"
+import { CalendarIcon, Send, Copy, Check, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +28,8 @@ export function InviteDialog({ sessionTitle, sessionDate, sessionTime }: InviteD
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState<Date | undefined>(sessionDate ? new Date(sessionDate) : undefined)
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
   const [formData, setFormData] = useState({
     friendName: "",
     friendEmail: "",
@@ -56,10 +58,41 @@ Looking forward to studying together!`
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleEmailInvite = () => {
-    const subject = encodeURIComponent(`Study Session Invite: ${sessionTitle || "Math Study"}`)
-    const body = encodeURIComponent(generateInviteMessage())
-    window.open(`mailto:${formData.friendEmail}?subject=${subject}&body=${body}`)
+  const handleSendInvite = async () => {
+    if (sending) return
+    setSending(true)
+    setSent(false)
+    try {
+      const res = await fetch("/api/invitations/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          friendName: formData.friendName,
+          friendEmail: formData.friendEmail,
+          sessionTitle,
+          sessionDate: date ? format(date, "yyyy-MM-dd") : sessionDate,
+          sessionTime: formData.time,
+          message: formData.message,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        const detailsStr =
+          err && err.details
+            ? typeof err.details === "string"
+              ? err.details
+              : JSON.stringify(err.details)
+            : ""
+        const msg = err?.error ? `${err.error}${detailsStr ? `: ${detailsStr}` : ""}` : "Failed to send invite"
+        throw new Error(msg)
+      }
+      setSent(true)
+      setFormData((prev) => ({ ...prev, message: "" }))
+    } catch (e: any) {
+      alert(e?.message || "Failed to send invite. Please try again.")
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -124,7 +157,7 @@ Looking forward to studying together!`
               id="time"
               type="time"
               value={formData.time}
-              onChange={(e) => setFormData({ ...formData, time: e.target.time })}
+              onChange={(e) => setFormData({ ...formData, time: e.target.value })}
             />
           </div>
 
@@ -162,11 +195,25 @@ Looking forward to studying together!`
             <Button
               type="button"
               className="flex-1 gap-2"
-              onClick={handleEmailInvite}
-              disabled={!formData.friendName || !formData.friendEmail}
+              onClick={handleSendInvite}
+              disabled={!formData.friendName || !formData.friendEmail || sending}
             >
-              <Send className="h-4 w-4" />
-              Open Email
+              {sending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : sent ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Sent!
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Send Invite
+                </>
+              )}
             </Button>
           </div>
         </div>
