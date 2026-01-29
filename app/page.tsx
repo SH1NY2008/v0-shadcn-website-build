@@ -1,21 +1,23 @@
- "use client"
- import { cn } from "@/lib/utils"
- import { NavHeader } from "@/components/nav-header"
- import { Button } from "@/components/ui/button"
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
- import { Progress } from "@/components/ui/progress"
- import { Badge } from "@/components/ui/badge"
- import { EncryptedText } from "@/components/ui/encrypted-text"
- import { Calculator, TrendingUp, Award, BookOpen, Brain, Target, ChevronRight } from "lucide-react"
- import Link from "next/link"
- import { useEffect, useState } from "react"
- import { auth } from "@/lib/firebase"
- import { onAuthStateChanged, type User } from "firebase/auth"
- import { collection, onSnapshot } from "firebase/firestore"
- import { db } from "@/lib/firebase"
- import { curriculum } from "@/lib/curriculum"
- 
- export default function LandingPage() {
+"use client"
+
+import { cn } from "@/lib/utils"
+import { LandingNav } from "@/components/landing-nav"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { ArrowRight, BookOpen, CheckCircle2, Layers, Layout, Zap } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import { auth } from "@/lib/firebase"
+import { onAuthStateChanged, type User } from "firebase/auth"
+import { collection, onSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { curriculum } from "@/lib/curriculum"
+import { Progress } from "@/components/ui/progress"
+import { PlusSign, MultiplySign } from "../components/ui/math-symbols"
+
+export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
 
@@ -45,222 +47,179 @@
     }
   }, [user])
 
-  const levelForCourse = (id: string): string => {
-    switch (id) {
-      case "algebra-1":
-      case "geometry":
-        return "Foundational"
-      case "algebra-2":
-        return "Intermediate"
-      case "precalculus":
-      case "calculus-1":
-      case "calculus-2":
-        return "Advanced"
-      default:
-        return "Course"
-    }
-  }
- 
   return (
-    <div className="min-h-screen">
-      <NavHeader />
+    // Base layer: Full viewport background color
+    <div className="min-h-screen bg-background p-4 md:p-8 font-sans selection:bg-primary/20 overflow-x-hidden">
+      
+      {/* Floating Card Container */}
+      <div className="relative mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10">
+        
+        {/* Navigation inside the card */}
+        <div className="absolute top-0 left-0 right-0 z-50">
+           <LandingNav />
+        </div>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="mx-auto max-w-4xl text-center">
-          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20" variant="outline">
-            High School Math Mastery Platform
-          </Badge>
-          <h1 className="mb-6 text-5xl font-bold tracking-tight text-balance sm:text-6xl md:text-7xl">
-            <EncryptedText
-              text="Master Math with Numeria.inc"
-              className="inline-block"
-              encryptedClassName="text-muted-foreground"
-              revealedClassName="text-foreground"
-              revealDelayMs={40}
-            />
-          </h1>
-          <p className="mb-8 text-lg text-muted-foreground text-pretty md:text-xl">
-            From Algebra to Calculus, experience interactive learning designed for high school students. Build
-            confidence, track progress, and excel in mathematics.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button size="lg" className="gap-2 bg-primary hover:bg-primary/90">
-              Start Learning Free
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="gap-2 bg-transparent">
-              View Courses
-            </Button>
+        {/* Hero Section */}
+        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center px-6 py-24 md:py-32">
+          
+          {/* Decorative Math Symbols */}
+          <div className="absolute left-0 bottom-0 md:left-12 md:bottom-12 opacity-90 pointer-events-none hidden md:block animate-bounce-slow">
+            <PlusSign className="w-48 h-48 md:w-64 md:h-64 text-primary rotate-[-12deg]" />
           </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="border-y bg-muted/30 py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid gap-8 sm:grid-cols-3">
-            <div className="text-center">
-              <div className="mb-2 text-4xl font-bold text-primary">6</div>
-              <div className="text-sm text-muted-foreground">Complete Courses</div>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 text-4xl font-bold text-primary">100+</div>
-              <div className="text-sm text-muted-foreground">Interactive Lessons</div>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 text-4xl font-bold text-primary">500+</div>
-              <div className="text-sm text-muted-foreground">Practice Problems</div>
-            </div>
+          <div className="absolute right-0 bottom-0 md:right-12 md:bottom-24 opacity-90 pointer-events-none hidden md:block animate-bounce-slow delay-700">
+            <MultiplySign className="w-48 h-48 md:w-64 md:h-64 text-secondary rotate-[12deg]" />
           </div>
-        </div>
-      </section>
 
-      {/* Progress/Courses Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl">Your Math Journey</h2>
-          <p className="text-lg text-muted-foreground text-pretty">
-            Progress through comprehensive courses designed for high school success
-          </p>
-        </div>
-
-        <div className="mx-auto max-w-4xl">
-          <div className="grid gap-4 md:grid-cols-2">
-            {curriculum.map((course) => (
-              <Card key={course.id} className="transition-all hover:shadow-md">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{course.name}</CardTitle>
-                      <CardDescription>{levelForCourse(course.id)}</CardDescription>
-                    </div>
-                    <Badge variant="secondary" className={cn("bg-primary", "text-white")}>
-                      {coursePercents[course.id] ?? 0}%
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Progress value={coursePercents[course.id] ?? 0} className="h-2" />
-                  <Button variant="ghost" size="sm" className="mt-3 w-full gap-2" asChild>
-                    <Link href="/resources">
-                      View Course
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="border-y bg-muted/30 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-              Everything You Need to Succeed
-            </h2>
-            <p className="text-lg text-muted-foreground text-pretty">
-              Comprehensive tools and resources for mastering high school mathematics
+          <ScrollReveal className="text-center max-w-5xl mx-auto z-10 space-y-8">
+            <p className="text-xl md:text-2xl font-bold tracking-wide text-primary uppercase mb-4">
+              Math without the headaches
             </p>
+            
+            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-card-foreground">
+              START LEARNING <br/>
+              <span className="relative inline-block px-4">
+                <span className="absolute inset-0 bg-primary -rotate-2 rounded-lg transform scale-105" />
+                <span className="relative text-primary-foreground">WITH CONFIDENCE</span>
+              </span>
+            </h1>
+            
+            <p className="text-xl md:text-3xl font-medium text-muted-foreground max-w-3xl mx-auto mt-8 leading-relaxed">
+              Numeria helps you master high school math. We guide you to autonomy with tips, lessons, and tracking.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8">
+              <Button size="lg" className="h-16 px-10 text-xl font-bold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
+                I am a Student
+              </Button>
+              <Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-full hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
+                I am a Teacher
+              </Button>
+            </div>
+          </ScrollReveal>
+        </section>
+
+        {/* Value Proposition */}
+        <section className="w-full px-6 py-24 md:py-32 bg-black/5">
+          <div className="max-w-[1200px] mx-auto">
+            <ScrollReveal>
+              <h2 className="text-4xl md:text-6xl font-black mb-16 text-center tracking-tight text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                WHY NUMERIA?
+              </h2>
+            </ScrollReveal>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: Layout,
+                  title: "Structured Learning",
+                  desc: "A carefully curated curriculum that guides you from Algebra to Calculus with clarity."
+                },
+                {
+                  icon: Zap,
+                  title: "Instant Feedback",
+                  desc: "Practice problems with real-time feedback to help you understand concepts immediately."
+                },
+                {
+                  icon: Layers,
+                  title: "Track Progress",
+                  desc: "Visual progress tracking to keep you motivated and aware of your improvements."
+                }
+              ].map((item, i) => (
+                <ScrollReveal key={i} delay={i * 0.1} className="group">
+                  <div className="flex flex-col items-center text-center space-y-6 p-8 rounded-[2rem] bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 h-full">
+                    <div className="p-4 rounded-2xl bg-secondary text-secondary-foreground border-2 border-black mb-2">
+                      <item.icon className="h-10 w-10" />
+                    </div>
+                    <h3 className="text-3xl font-bold">{item.title}</h3>
+                    <p className="text-lg text-muted-foreground font-medium leading-relaxed">{item.desc}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <BookOpen className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Interactive Lessons</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Engage with dynamic video lessons, step-by-step examples, and visual explanations
+        {/* Featured Items (Courses) */}
+        <section className="w-full px-6 py-24 md:py-32">
+          <div className="max-w-[1200px] mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+              <ScrollReveal>
+                <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                  EXPLORE <span className="inline-block bg-primary text-white px-4 py-1 -rotate-2 rounded-lg transform">COURSES</span>
+                </h2>
+                <p className="text-xl text-foreground/80 font-medium max-w-md">
+                  Start your journey with one of our core mathematics courses.
                 </p>
-              </CardContent>
-            </Card>
+              </ScrollReveal>
+              <ScrollReveal delay={0.2}>
+                <Button variant="ghost" className="text-xl font-bold hover:bg-transparent hover:text-primary transition-colors group" asChild>
+                  <Link href="/resources">
+                    View All Courses <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-2" />
+                  </Link>
+                </Button>
+              </ScrollReveal>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Brain className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Practice Quizzes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Test your knowledge with adaptive quizzes that adjust to your skill level
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <TrendingUp className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Progress Tracking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Monitor your growth with detailed analytics and personalized insights
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Target className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Flexible Scheduling</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Plan your learning sessions around your schedule with smart reminders
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Award className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Certificates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Earn certificates as you complete courses and demonstrate mastery
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Calculator className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Downloadable Resources</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Access study guides, formula sheets, and practice worksheets anytime
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid md:grid-cols-2 gap-8">
+              {curriculum.slice(0, 4).map((course, i) => (
+                <ScrollReveal key={course.id} delay={i * 0.1}>
+                  <Link href={`/resources?course=${course.id}`} className="block group h-full">
+                    <Card className="h-full rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 bg-white overflow-hidden">
+                      <CardHeader className="bg-muted/30 border-b-4 border-black p-8">
+                        <div className="flex justify-between items-start mb-4">
+                          <Badge className="bg-primary text-primary-foreground border-2 border-black text-sm px-3 py-1 rounded-full hover:bg-primary">
+                            {course.id.includes('calculus') ? 'Advanced' : 'Core'}
+                          </Badge>
+                          {coursePercents[course.id] !== undefined && coursePercents[course.id] > 0 && (
+                            <Badge className="bg-green-500 text-white border-2 border-black text-sm px-3 py-1 rounded-full">
+                              {coursePercents[course.id]}% Complete
+                            </Badge>
+                          )}
+                        </div>
+                        <CardTitle className="text-3xl font-black group-hover:text-primary transition-colors">
+                          {course.name}
+                        </CardTitle>
+                        <CardDescription className="text-lg font-medium text-black/60 line-clamp-2 mt-2">
+                          Master the fundamentals and advanced concepts of {course.name}.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-8">
+                        <div className="flex items-center text-base font-bold text-muted-foreground mb-6">
+                          <BookOpen className="mr-2 h-5 w-5" />
+                          {course.units.length} Units
+                          <span className="mx-2 text-black/30">•</span>
+                          {course.units.reduce((acc, u) => acc + u.topics.length, 0)} Topics
+                        </div>
+                        {coursePercents[course.id] !== undefined && (
+                          <div className="w-full bg-black/5 rounded-full h-4 border-2 border-black overflow-hidden">
+                             <div 
+                               className="bg-primary h-full transition-all duration-500" 
+                               style={{ width: `${coursePercents[course.id]}%` }}
+                             />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2026 Numeria.inc. Empowering students to master mathematics.</p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="w-full py-12 border-t-4 border-black bg-muted/20">
+          <div className="max-w-[1200px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-base font-medium text-muted-foreground">
+            <p>© 2026 Numeria.inc. All rights reserved.</p>
+            <div className="flex gap-8 mt-4 md:mt-0">
+              <Link href="#" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">Terms</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">Contact</Link>
+            </div>
+          </div>
+        </footer>
+
+      </div>
     </div>
   )
 }
