@@ -15,7 +15,7 @@ import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
 import { Progress } from "@/components/ui/progress"
-import { PlusSign, MultiplySign } from "../components/ui/math-symbols"
+import { DivideSign, MultiplySign } from "../components/ui/math-symbols"
 
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -63,11 +63,11 @@ export default function LandingPage() {
         <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center px-6 py-24 md:py-32">
           
           {/* Decorative Math Symbols */}
-          <div className="absolute left-0 bottom-0 md:left-12 md:bottom-12 opacity-90 pointer-events-none hidden md:block animate-bounce-slow">
-            <PlusSign className="w-48 h-48 md:w-64 md:h-64 text-primary rotate-[-12deg]" />
+          <div className="absolute left-10 bottom-10 md:left-12 md:bottom-12 pointer-events-none hidden md:block">
+            <DivideSign className="w-32 h-32 md:w-44 md:h-44 text-[#008B8B]" />
           </div>
-          <div className="absolute right-0 bottom-0 md:right-12 md:bottom-24 opacity-90 pointer-events-none hidden md:block animate-bounce-slow delay-700">
-            <MultiplySign className="w-48 h-48 md:w-64 md:h-64 text-secondary rotate-[12deg]" />
+          <div className="absolute right-10 bottom-10 md:right-12 md:bottom-12 pointer-events-none hidden md:block">
+            <MultiplySign className="w-32 h-32 md:w-44 md:h-44 text-[#008B8B]" />
           </div>
 
           <ScrollReveal className="text-center max-w-5xl mx-auto z-10 space-y-8">

@@ -37,10 +37,32 @@ export function MultiplySign({ className, ...props }: MathSymbolProps) {
       <path 
         d="M25 25 L75 75 M75 25 L25 75" 
         stroke="currentColor" 
-        strokeWidth="15" 
+        strokeWidth="20" 
         strokeLinecap="round" 
         strokeLinejoin="round"
       />
+    </svg>
+  )
+}
+
+export function DivideSign({ className, ...props }: MathSymbolProps) {
+  return (
+    <svg 
+      viewBox="0 0 100 100" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("drop-shadow-[8px_8px_0px_rgba(0,0,0,0.2)]", className)}
+      {...props}
+    >
+      <path 
+        d="M20 50 L80 50" 
+        stroke="currentColor" 
+        strokeWidth="20" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+      />
+      <circle cx="50" cy="20" r="11" fill="currentColor" />
+      <circle cx="50" cy="80" r="11" fill="currentColor" />
     </svg>
   )
 }
