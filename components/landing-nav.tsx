@@ -30,16 +30,22 @@ export function LandingNav() {
       {/* Left Group */}
       <div className="flex-1 flex items-center justify-start gap-6">
         <Link 
+          href="/dashboard" 
+          className="hidden md:block text-lg font-bold hover:text-primary transition-colors"
+        >
+          Dashboard
+        </Link>
+        <Link 
+          href="/schedule" 
+          className="hidden md:block text-lg font-bold hover:text-primary transition-colors"
+        >
+          Schedule
+        </Link>
+        <Link 
           href="/resources" 
           className="hidden md:block text-lg font-bold hover:text-primary transition-colors"
         >
           Resources
-        </Link>
-        <Link 
-          href="/curriculum" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors"
-        >
-          Curriculum
         </Link>
       </div>
 
@@ -104,8 +110,8 @@ export function LandingNav() {
             >
               Log in
             </Link>
-            <Button size="lg" className="rounded-full font-bold bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
-              Get Started
+            <Button asChild size="lg" className="rounded-full font-bold bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <Link href="/google-signin">Get Started</Link>
             </Button>
           </>
         )}

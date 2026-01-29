@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { NavHeader } from "@/components/nav-header"
+import { PageLayout } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -90,38 +90,48 @@ export default function CallPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <NavHeader />
-      <main className="container mx-auto max-w-6xl px-4 py-4 flex-1 flex flex-col gap-4">
+    <PageLayout>
+      <div className="flex flex-col gap-6 h-full">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Study Session Call</h1>
+          <h1 className="text-3xl font-black text-black">Study Session Call</h1>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => api?.executeCommand?.("toggleTileView")}>Toggle Tile View</Button>
-            <Button onClick={() => router.back()}>Leave</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => api?.executeCommand?.("toggleTileView")}
+              className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold"
+            >
+              Toggle Tile View
+            </Button>
+            <Button 
+              onClick={() => router.back()}
+              className="bg-[#006B6B] hover:bg-[#005050] text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold"
+            >
+              Leave
+            </Button>
           </div>
         </div>
         <Dialog open={showPrompt} onOpenChange={setShowPrompt}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl">
             <DialogHeader>
-              <DialogTitle>Enable Mic & Camera</DialogTitle>
-              <DialogDescription>Grant access to your microphone and camera to join the call.</DialogDescription>
+              <DialogTitle className="text-2xl font-black">Enable Mic & Camera</DialogTitle>
+              <DialogDescription className="font-medium text-muted-foreground">Grant access to your microphone and camera to join the call.</DialogDescription>
             </DialogHeader>
             <div className="flex gap-2">
-              <Button onClick={requestPermissions} disabled={requesting} className="flex-1">
+              <Button onClick={requestPermissions} disabled={requesting} className="flex-1 bg-[#006B6B] hover:bg-[#005050] text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
                 {requesting ? "Requesting..." : "Enable"}
               </Button>
-              <Button asChild variant="outline" className="flex-1">
+              <Button asChild variant="outline" className="flex-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
                 <a href={roomUrl} target="_blank" rel="noopener noreferrer">Open in Jitsi</a>
               </Button>
             </div>
-            {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+            {error && <p className="text-sm text-red-600 mt-2 font-bold">{error}</p>}
           </DialogContent>
         </Dialog>
         {joining && (
-          <div className="text-sm text-muted-foreground">Joining room...</div>
+          <div className="text-sm text-muted-foreground font-bold">Joining room...</div>
         )}
         {error && !showPrompt && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
+          <div className="flex items-center gap-2 text-sm text-red-600 font-bold">
             <span>{error}</span>
             <Button
               variant="outline"
@@ -137,18 +147,19 @@ export default function CallPage() {
                 script.onload = () => setReady(true)
                 document.body.appendChild(script)
               }}
+              className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             >
               Retry
             </Button>
-            <Button asChild size="sm" variant="default">
+            <Button asChild size="sm" variant="default" className="bg-[#006B6B] hover:bg-[#005050] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <a href={roomUrl} target="_blank" rel="noopener noreferrer">Open in Jitsi</a>
             </Button>
           </div>
         )}
-        <div className="w-full flex-1 rounded-lg border overflow-hidden">
-          <div ref={containerRef} className="w-full h-[70vh]" />
+        <div className="w-full flex-1 rounded-xl border-4 border-black overflow-hidden bg-[#FFB627] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-1">
+          <div ref={containerRef} className="w-full h-[70vh] rounded-lg overflow-hidden bg-black/5" />
         </div>
-      </main>
-    </div>
+      </div>
+    </PageLayout>
   )
 }

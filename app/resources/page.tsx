@@ -1,8 +1,9 @@
-import { NavHeader } from "@/components/nav-header"
+"use client"
+
+import { PageLayout } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Search, BookOpen, Play, Calculator } from "lucide-react"
+import { BookOpen, Play, Calculator } from "lucide-react"
 import { curriculum } from "@/lib/curriculum"
 import Link from "next/link"
 import { CourseProgressBadge } from "@/components/course-progress-badge"
@@ -43,62 +44,71 @@ const OPENSTAX_RESOURCES = [
 
 export default function ResourcesPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <NavHeader />
+    <PageLayout>
+      <div className="mb-12 text-center">
+        <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
+          Learning Resources
+        </h1>
+        <p className="text-xl md:text-2xl font-medium text-[#006B6B]">
+          Khan Academy video lessons organized by unit and topic
+        </p>
+      </div>
 
-      <main className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Learning Resources</h1>
-          <p className="text-lg text-muted-foreground">Khan Academy video lessons organized by unit and topic</p>
-        </div>
-
-        <div className="space-y-8">
-          <Accordion type="multiple" className="space-y-4">
-            {curriculum.map((course) => (
-              <AccordionItem key={course.id} value={course.id} className="border bg-card px-6 rounded-lg">
-                <AccordionTrigger className="hover:no-underline py-6">
-                        <div className="flex items-center gap-3 text-left">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
-                            <Calculator className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <h2 className="text-2xl font-bold tracking-tight">{course.name}</h2>
-                            <p className="text-sm text-muted-foreground font-normal">
-                              {course.units.length} units • {course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}{" "}
-                              video lessons
-                            </p>
-                          </div>
-                          <div className="ml-auto">
-                            <CourseProgressBadge
-                              courseId={course.id}
-                              totalTopics={course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}
-                            />
-                          </div>
+      <div className="space-y-8">
+        <Accordion type="multiple" className="space-y-6">
+          {curriculum.map((course) => (
+            <AccordionItem 
+              key={course.id} 
+              value={course.id} 
+              className="border-4 border-black/10 bg-[#FFB627] rounded-2xl shadow-lg px-6 overflow-hidden"
+            >
+              <AccordionTrigger className="hover:no-underline py-6 group">
+                <div className="flex items-center gap-4 text-left w-full">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#006B6B] text-white shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <Calculator className="h-7 w-7" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-black text-black tracking-tight">{course.name}</h2>
+                    <p className="text-sm font-bold text-black/60 mt-1">
+                      {course.units.length} units • {course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}{" "}
+                      video lessons
+                    </p>
+                  </div>
+                  <div className="ml-auto mr-4">
+                    <CourseProgressBadge
+                      courseId={course.id}
+                      totalTopics={course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}
+                    />
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-6">
+                <Accordion type="multiple" className="w-full pt-2 space-y-4">
+                  {course.units.map((unit, unitIdx) => (
+                    <AccordionItem 
+                      key={unitIdx} 
+                      value={`unit-${unitIdx}`} 
+                      className="border-2 border-black/5 bg-white/40 rounded-xl px-4 overflow-hidden"
+                    >
+                      <AccordionTrigger className="text-left hover:no-underline py-4">
+                        <div>
+                          <div className="font-bold text-lg text-black">{unit.name}</div>
+                          <div className="text-sm font-bold text-[#006B6B]">{unit.topics.length} topics</div>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <Accordion type="multiple" className="w-full pt-2 pb-6">
-                          {course.units.map((unit, unitIdx) => (
-                      <AccordionItem key={unitIdx} value={`unit-${unitIdx}`} className="border-b-0">
-                        <AccordionTrigger className="text-left">
-                          <div>
-                            <div className="font-semibold">{unit.name}</div>
-                            <div className="text-sm text-muted-foreground">{unit.topics.length} topics</div>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-3 pt-4">
-                            {unit.topics.map((topic, topicIdx) => (
-                              <div
-                                key={topicIdx}
-                                className="flex items-center justify-between rounded-lg border bg-background p-4 transition-all hover:bg-accent/5"
-                              >
+                        <div className="space-y-3 pt-2 pb-4">
+                          {unit.topics.map((topic, topicIdx) => (
+                            <div
+                              key={topicIdx}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-black/5 bg-white p-4 transition-all hover:shadow-md hover:-translate-y-1"
+                            >
                               <div className="flex-1">
-                                  <div className="font-medium">{topic.name}</div>
-                                  <div className="mt-1 text-sm text-muted-foreground">Khan Academy</div>
+                                <div className="font-bold text-base text-black">{topic.name}</div>
+                                <div className="mt-1 text-xs font-bold text-black/40 uppercase tracking-wide">Khan Academy</div>
                               </div>
-                              <div className="flex flex-col items-end gap-2 ml-4 sm:flex-row sm:items-center">
-                                <Button size="sm" className="gap-2" asChild>
+                              <div className="flex flex-col items-start sm:items-end gap-3 ml-0 sm:ml-4 sm:flex-row sm:items-center">
+                                <Button size="sm" className="gap-2 bg-[#006B6B] hover:bg-[#005555] text-white font-bold rounded-lg" asChild>
                                   <Link href={`https://www.youtube.com/watch?v=${topic.videoId}`} target="_blank">
                                     <Play className="h-4 w-4" />
                                     Watch
@@ -108,46 +118,45 @@ export default function ResourcesPage() {
                               </div>
                             </div>
                           ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
 
-          <section className="rounded-lg border bg-card p-6">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <BookOpen className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold tracking-tight">OpenStax Textbooks</h2>
-                <p className="text-sm text-muted-foreground">Free downloadable textbooks and resources</p>
-              </div>
+        <section className="rounded-2xl border-4 border-black/10 bg-[#FFB627] p-8 shadow-xl">
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+              <BookOpen className="h-7 w-7" />
             </div>
+            <div>
+              <h2 className="text-3xl font-black text-black tracking-tight">OpenStax Textbooks</h2>
+              <p className="text-lg font-medium text-[#006B6B]">Free downloadable textbooks and resources</p>
+            </div>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {OPENSTAX_RESOURCES.map((resource, index) => (
-                <div key={index} className="flex flex-col justify-between rounded-lg border bg-background p-4 transition-all hover:bg-accent/5">
-                  <div className="mb-4">
-                    <h3 className="font-semibold">{resource.title}</h3>
-                    <p className="text-sm text-muted-foreground">{resource.description}</p>
-                  </div>
-                  <Button asChild variant="outline" className="w-full gap-2">
-                    <Link href={resource.url} target="_blank" rel="noopener noreferrer">
-                      <BookOpen className="h-4 w-4" />
-                      Access Resource
-                    </Link>
-                  </Button>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {OPENSTAX_RESOURCES.map((resource, index) => (
+              <div key={index} className="flex flex-col justify-between rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md">
+                <div className="mb-6">
+                  <h3 className="font-bold text-lg text-black mb-2">{resource.title}</h3>
+                  <p className="text-sm font-medium text-black/60">{resource.description}</p>
                 </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
+                <Button asChild variant="outline" className="w-full gap-2 border-black/20 hover:bg-white bg-transparent font-bold text-[#006B6B]">
+                  <Link href={resource.url} target="_blank" rel="noopener noreferrer">
+                    <BookOpen className="h-4 w-4" />
+                    Access Resource
+                  </Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </PageLayout>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { NavHeader } from "@/components/nav-header"
+import { PageLayout } from "@/components/page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -202,207 +202,212 @@ export default function SchedulePage() {
   const sortedDates = Object.keys(groupedSessions).sort()
 
   return (
-    <div className="min-h-screen bg-background">
-      <NavHeader />
-
-      <main className="container mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Math Study Schedule</h1>
-            <p className="text-lg text-muted-foreground">Plan your math learning sessions</p>
-          </div>
-          {user ? (
-            <CreateSessionDialog
-              userId={user.uid}
-              userName={user.displayName || "Student"}
-              userEmail={user.email || ""}
-              onSessionCreated={handleSessionCreated}
-            />
-          ) : (
-            <Button variant="outline" onClick={() => router.push("/google-signin")}>
-              Sign in to create session
-            </Button>
-          )}
+    <PageLayout>
+      <div className="mb-12 flex flex-col md:flex-row items-end justify-between gap-6">
+        <div>
+          <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
+            Math Study Schedule
+          </h1>
+          <p className="text-xl md:text-2xl font-medium text-[#006B6B]">
+            Plan your math learning sessions
+          </p>
         </div>
-
-        {loading ? (
-          <Card>
-            <CardContent className="flex h-96 items-center justify-center">
-              <p className="text-muted-foreground">Loading sessions...</p>
-            </CardContent>
-          </Card>
-        ) : sessions.length === 0 ? (
-          <Card>
-            <CardContent className="flex h-96 flex-col items-center justify-center gap-4">
-              <Calendar className="h-16 w-16 text-muted-foreground" />
-              <div className="text-center">
-                <h3 className="text-lg font-semibold">No sessions scheduled</h3>
-                <p className="text-muted-foreground">Create your first study session to get started</p>
-              </div>
-            </CardContent>
-          </Card>
+        {user ? (
+          <CreateSessionDialog
+            userId={user.uid}
+            userName={user.displayName || "Student"}
+            userEmail={user.email || ""}
+            onSessionCreated={handleSessionCreated}
+          />
         ) : (
-          <div className="space-y-4">
-            {sortedDates.map((date) => {
-              const dateSessions = groupedSessions[date]
-              const today = new Date().toISOString().split("T")[0]
-              const isToday = date === today
+          <Button 
+            className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] shadow-md px-8"
+            onClick={() => router.push("/google-signin")}
+          >
+            Sign in to create session
+          </Button>
+        )}
+      </div>
 
-              return (
-                <Card key={date}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>{formatDate(date)}</CardTitle>
-                        <CardDescription>{dateSessions.length} session(s) scheduled</CardDescription>
-                      </div>
-                      {isToday && <Badge variant="secondary">Today</Badge>}
+      {loading ? (
+        <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+          <CardContent className="flex h-96 items-center justify-center">
+            <p className="text-black/60 font-bold text-lg animate-pulse">Loading sessions...</p>
+          </CardContent>
+        </Card>
+      ) : sessions.length === 0 ? (
+        <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+          <CardContent className="flex h-96 flex-col items-center justify-center gap-6">
+            <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center">
+              <Calendar className="h-10 w-10 text-[#006B6B]" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-2xl font-black text-black mb-2">No sessions scheduled</h3>
+              <p className="text-lg font-medium text-[#006B6B]">Create your first study session to get started</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          {sortedDates.map((date) => {
+            const dateSessions = groupedSessions[date]
+            const today = new Date().toISOString().split("T")[0]
+            const isToday = date === today
+
+            return (
+              <Card key={date} className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+                <CardHeader className="border-b-2 border-black/5 pb-4 bg-black/5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-2xl font-black text-black">{formatDate(date)}</CardTitle>
+                      <CardDescription className="text-[#006B6B] font-bold">{dateSessions.length} session(s) scheduled</CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {dateSessions.map((session) => {
-                      const isCreator = user ? session.creatorId === user.uid : false
-                      const isParticipant = user ? session.participants.includes(user.uid) : false
-                      const course = curriculum.find((c) => c.id === session.courseId)
+                    {isToday && <Badge className="bg-[#006B6B] text-white border-none text-sm px-3 py-1 rounded-full">Today</Badge>}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6 p-6">
+                  {dateSessions.map((session) => {
+                    const isCreator = user ? session.creatorId === user.uid : false
+                    const isParticipant = user ? session.participants.includes(user.uid) : false
+                    const course = curriculum.find((c) => c.id === session.courseId)
 
-                      return (
-                        <div key={session.id} className="flex gap-4 rounded-lg border bg-card p-4">
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                            {session.isPublic ? (
-                              <Globe className="h-6 w-6 text-primary" />
-                            ) : (
-                              <Lock className="h-6 w-6 text-primary" />
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-start justify-between">
-                          
-                              <div>
-                                <h4 className="font-semibold">{session.title}</h4>
-                                <p className="text-sm text-muted-foreground">{session.description}</p>
-                                {course && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Course: {course.name}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex gap-2">
-                                <Badge variant={session.isPublic ? "default" : "secondary"}>
-                                  {session.isPublic ? "Public" : "Private"}
-                                </Badge>
-                                {isCreator && <Badge variant="outline">Creator</Badge>}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {formatTime(session.startTime)} - {formatTime(session.endTime)}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                {session.participants.length} participant(s)
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <BookOpen className="h-4 w-4" />
-                                by {isCreator ? "You" : session.creatorName}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              {isCreator ? (
-                                <>
-                                  <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
-                                    <a
-                                      href={generateGoogleCalendarLink(
-                                        session.title,
-                                        session.description,
-                                        session.date,
-                                        session.startTime,
-                                        session.endTime,
-                                      )}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      <Calendar className="h-3 w-3" />
-                                      Add to Calendar
-                                    </a>
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
-                                    <a href={generateJitsiLink(session.id)} target="_blank" rel="noopener noreferrer">
-                                      <Video className="h-3 w-3" />
-                                      Start Call (Moderator)
-                                    </a>
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="gap-1"
-                                    onClick={() => handleDeleteSession(session.id)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                    Delete
-                                  </Button>
-                                </>
-                              ) : session.isPublic ? (
-                                <>
-                                  {isParticipant ? (
-                                    <>
-                                      <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
-                                        <a
-                                          href={generateGoogleCalendarLink(
-                                            session.title,
-                                            session.description,
-                                            session.date,
-                                            session.startTime,
-                                            session.endTime,
-                                          )}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          <Calendar className="h-3 w-3" />
-                                          Add to Calendar
-                                        </a>
-                                      </Button>
-                                      <Button size="sm" variant="outline" className="gap-1 bg-transparent" asChild>
-                                        <a href={generateJitsiLink(session.id)} target="_blank" rel="noopener noreferrer">
-                                          <Video className="h-3 w-3" />
-                                          Join Call
-                                        </a>
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleLeaveSession(session.id)}
-                                      >
-                                        Leave Session
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    user ? (
-                                      <Button size="sm" onClick={() => handleJoinSession(session.id)}>
-                                        Join Session
-                                      </Button>
-                                    ) : (
-                                      <Button size="sm" variant="default" onClick={() => router.push("/google-signin")}>
-                                        Sign in to join
-                                      </Button>
-                                    )
-                                  )}
-                                </>
-                              ) : (
-                                <Badge variant="secondary">Private Session</Badge>
+                    return (
+                      <div key={session.id} className="flex flex-col md:flex-row gap-4 rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                          {session.isPublic ? (
+                            <Globe className="h-8 w-8" />
+                          ) : (
+                            <Lock className="h-8 w-8" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-black text-xl text-black">{session.title}</h4>
+                              <p className="text-base font-medium text-black/70 mt-1">{session.description}</p>
+                              {course && (
+                                <p className="text-sm font-bold text-[#006B6B] mt-2 bg-white/50 inline-block px-2 py-1 rounded-md">
+                                  Course: {course.name}
+                                </p>
                               )}
                             </div>
+                            <div className="flex gap-2 mt-2 md:mt-0">
+                              <Badge variant={session.isPublic ? "default" : "secondary"} className="h-fit">
+                                {session.isPublic ? "Public" : "Private"}
+                              </Badge>
+                              {isCreator && <Badge variant="outline" className="h-fit border-black/20">Creator</Badge>}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-black/60">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-[#006B6B]" />
+                              {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-[#006B6B]" />
+                              {session.participants.length} participant(s)
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="h-4 w-4 text-[#006B6B]" />
+                              by {isCreator ? "You" : session.creatorName}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-3 pt-2">
+                            {isCreator ? (
+                              <>
+                                <Button size="sm" variant="outline" className="gap-2 bg-transparent border-black/20 hover:bg-white/50" asChild>
+                                  <a
+                                    href={generateGoogleCalendarLink(
+                                      session.title,
+                                      session.description,
+                                      session.date,
+                                      session.startTime,
+                                      session.endTime,
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Calendar className="h-4 w-4" />
+                                    Add to Calendar
+                                  </a>
+                                </Button>
+                                <Button size="sm" variant="outline" className="gap-2 bg-transparent border-black/20 hover:bg-white/50" asChild>
+                                  <a href={generateJitsiLink(session.id)} target="_blank" rel="noopener noreferrer">
+                                    <Video className="h-4 w-4" />
+                                    Start Call
+                                  </a>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="gap-2 bg-red-500 hover:bg-red-600 text-white"
+                                  onClick={() => handleDeleteSession(session.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete
+                                </Button>
+                              </>
+                            ) : session.isPublic ? (
+                              <>
+                                {isParticipant ? (
+                                  <>
+                                    <Button size="sm" variant="outline" className="gap-2 bg-transparent border-black/20 hover:bg-white/50" asChild>
+                                      <a
+                                        href={generateGoogleCalendarLink(
+                                          session.title,
+                                          session.description,
+                                          session.date,
+                                          session.startTime,
+                                          session.endTime,
+                                        )}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        <Calendar className="h-4 w-4" />
+                                        Add to Calendar
+                                      </a>
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="gap-2 bg-transparent border-black/20 hover:bg-white/50" asChild>
+                                      <a href={generateJitsiLink(session.id)} target="_blank" rel="noopener noreferrer">
+                                        <Video className="h-4 w-4" />
+                                        Join Call
+                                      </a>
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-black/20 hover:bg-white/50"
+                                      onClick={() => handleLeaveSession(session.id)}
+                                    >
+                                      Leave Session
+                                    </Button>
+                                  </>
+                                ) : (
+                                  user ? (
+                                    <Button size="sm" className="bg-[#006B6B] text-white hover:bg-[#005555]" onClick={() => handleJoinSession(session.id)}>
+                                      Join Session
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" className="bg-[#006B6B] text-white hover:bg-[#005555]" onClick={() => router.push("/google-signin")}>
+                                      Sign in to join
+                                    </Button>
+                                  )
+                                )}
+                              </>
+                            ) : (
+                              <Badge variant="secondary">Private Session</Badge>
+                            )}
                           </div>
                         </div>
-                      )
-                    })}
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        )}
-      </main>
-    </div>
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+    </PageLayout>
   )
 }

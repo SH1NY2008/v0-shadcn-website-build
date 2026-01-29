@@ -1,9 +1,9 @@
 "use client"
- 
- import { NavHeader } from "@/components/nav-header"
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
- import { Progress } from "@/components/ui/progress"
- import { Button } from "@/components/ui/button"
+
+import { PageLayout } from "@/components/page-layout"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, TrendingUp, Award, BookOpen, Target } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -13,23 +13,23 @@ import { collection, getDocs, query, where, onSnapshot } from "firebase/firestor
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
 import Link from "next/link"
- 
- export default function DashboardPage() {
-   const [user, setUser] = useState<User | null>(null)
-   const [studyHours, setStudyHours] = useState<number>(0)
-   const [activeCourses, setActiveCourses] = useState<number>(0)
+
+export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [studyHours, setStudyHours] = useState<number>(0)
+  const [activeCourses, setActiveCourses] = useState<number>(0)
   const [overallProgress, setOverallProgress] = useState<number>(0)
   const [achievements, setAchievements] = useState<number>(0)
   const [weeklyCompleted, setWeeklyCompleted] = useState<number>(0)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
- 
-   useEffect(() => {
-     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
-     return () => unsub()
-   }, [])
- 
-   const name = user?.displayName || "Student"
- 
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u))
+    return () => unsub()
+  }, [])
+
+  const name = user?.displayName || "Student"
+
   useEffect(() => {
     const run = async () => {
       if (!user) return
@@ -62,7 +62,7 @@ import Link from "next/link"
     }
     run()
   }, [user])
- 
+
   const weeklyLessonsPercent = Math.min(100, Math.round((weeklyCompleted / 5) * 100))
   const weeklyStudyHours = Number((weeklyCompleted * 0.25).toFixed(1))
   const weeklyHoursPercent = Math.min(100, Math.round((weeklyStudyHours / 10) * 100))
@@ -86,152 +86,123 @@ import Link from "next/link"
       for (const u of unsubs) u()
     }
   }, [user])
-   return (
-     <div className="min-h-screen bg-background">
-       <NavHeader />
- 
-       <main className="container mx-auto max-w-6xl px-4 py-8">
-         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-4xl font-bold tracking-tight text-balance">Welcome back, {name}</h1>
-           <p className="text-lg text-muted-foreground">Track your progress in high school mathematics</p>
-         </div>
- 
-         {/* Stats Grid */}
-         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-           <Card>
-             <CardHeader className="flex flex-row items-center justify-between pb-2">
-               <CardTitle className="text-sm font-medium">Study Hours</CardTitle>
-               <Clock className="h-4 w-4 text-muted-foreground" />
-             </CardHeader>
-             <CardContent>
-              <div className="text-2xl font-bold text-primary">{studyHours}</div>
-              <p className="text-xs text-muted-foreground">Estimated from topic completions</p>
-              </CardContent>
-            </Card>
- 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-              <div className="text-2xl font-bold text-primary">{activeCourses}</div>
-              <p className="text-xs text-muted-foreground">Courses with progress</p>
-              </CardContent>
-            </Card>
- 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-              <div className="text-2xl font-bold text-primary">{overallProgress}%</div>
-              <p className="text-xs text-muted-foreground">Across all courses</p>
-              </CardContent>
-            </Card>
- 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Achievements</CardTitle>
-                <Award className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-              <div className="text-2xl font-bold text-primary">{achievements}</div>
-              <p className="text-xs text-muted-foreground">Topics completed</p>
-              </CardContent>
-            </Card>
-          </div>
+  return (
+    <PageLayout>
+      <div className="mb-12 text-center">
+        <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
+          Welcome back, {name}
+        </h1>
+        <p className="text-xl md:text-2xl font-medium text-[#006B6B]">
+          Track your progress in high school mathematics
+        </p>
+      </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Current Courses */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Courses</CardTitle>
-              <CardDescription>Continue where you left off</CardDescription>
+      {/* Stats Grid */}
+      <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { title: "Study Hours", icon: Clock, value: studyHours, sub: "Estimated from topic completions" },
+          { title: "Active Courses", icon: BookOpen, value: activeCourses, sub: "Courses with progress" },
+          { title: "Overall Progress", icon: TrendingUp, value: `${overallProgress}%`, sub: "Across all courses" },
+          { title: "Achievements", icon: Award, value: achievements, sub: "Topics completed" }
+        ].map((stat, i) => (
+          <Card key={i} className="bg-[#FFB627] border-4 border-black/10 shadow-lg rounded-xl overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-bold text-black/70 uppercase tracking-wider">{stat.title}</CardTitle>
+              <stat.icon className="h-5 w-5 text-[#006B6B]" />
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold">Algebra 2 w/ Trig</h4>
-                    <p className="text-sm text-muted-foreground">Chapter 8: Trigonometric Functions</p>
-                  </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">
-                    {coursePercents["algebra-2"] ?? 0}%
-                  </Badge>
-                </div>
-                <Progress value={coursePercents["algebra-2"] ?? 0} className="h-2" />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold">Pre-Calculus</h4>
-                    <p className="text-sm text-muted-foreground">Chapter 3: Polynomial Functions</p>
-                  </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">
-                    {coursePercents["precalculus"] ?? 0}%
-                  </Badge>
-                </div>
-                <Progress value={coursePercents["precalculus"] ?? 0} className="h-2" />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold">Calculus 1</h4>
-                    <p className="text-sm text-muted-foreground">Chapter 1: Limits and Continuity</p>
-                  </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">
-                    {coursePercents["calculus-1"] ?? 0}%
-                  </Badge>
-                </div>
-                <Progress value={coursePercents["calculus-1"] ?? 0} className="h-2" />
-              </div>
-
-              <Button className="w-full bg-transparent" variant="outline" asChild>
-                <Link href="/resources">View All Courses</Link>
-              </Button>
+            <CardContent>
+              <div className="text-3xl font-black text-[#006B6B]">{stat.value}</div>
+              <p className="text-xs font-bold text-black/50 mt-1">{stat.sub}</p>
             </CardContent>
           </Card>
+        ))}
+      </div>
 
-          {/* Study Goals */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Goals</CardTitle>
-              <CardDescription>Your learning targets for this week</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-4 rounded-lg border p-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Target className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1 space-y-2">
+      <div className="grid gap-8 lg:grid-cols-2">
+        {/* Current Courses */}
+        <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+          <CardHeader className="border-b-2 border-black/5 pb-6">
+            <CardTitle className="text-2xl font-black text-black">Current Courses</CardTitle>
+            <CardDescription className="text-[#006B6B] font-bold text-lg">Continue where you left off</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            <div className="space-y-6">
+              {[
+                { name: "Algebra 2 w/ Trig", desc: "Chapter 8: Trigonometric Functions", id: "algebra-2" },
+                { name: "Pre-Calculus", desc: "Chapter 3: Polynomial Functions", id: "precalculus" },
+                { name: "Calculus 1", desc: "Chapter 1: Limits and Continuity", id: "calculus-1" }
+              ].map((course) => (
+                <div key={course.id} className="space-y-2">
                   <div className="flex items-start justify-between">
-                    <h4 className="font-semibold">Complete 5 Lessons</h4>
-                    <span className="text-sm font-medium text-primary">{weeklyCompleted}/5</span>
+                    <div>
+                      <h4 className="font-bold text-lg text-black">{course.name}</h4>
+                      <p className="text-sm font-medium text-black/60">{course.desc}</p>
+                    </div>
+                    <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-sm px-3 py-1 rounded-full">
+                      {coursePercents[course.id] ?? 0}%
+                    </Badge>
                   </div>
-                  <Progress value={weeklyLessonsPercent} className="h-2" />
+                  <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#006B6B]" 
+                      style={{ width: `${coursePercents[course.id] ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] hover:scale-[1.02] transition-all shadow-md" asChild>
+              <Link href="/resources">View All Courses</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Study Goals */}
+        <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+          <CardHeader className="border-b-2 border-black/5 pb-6">
+            <CardTitle className="text-2xl font-black text-black">Weekly Goals</CardTitle>
+            <CardDescription className="text-[#006B6B] font-bold text-lg">Your learning targets for this week</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                <Target className="h-7 w-7" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div className="flex items-start justify-between">
+                  <h4 className="font-bold text-lg text-black">Complete 5 Lessons</h4>
+                  <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-2 py-1 rounded-md">{weeklyCompleted}/5</span>
+                </div>
+                <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-[#006B6B]" 
+                    style={{ width: `${weeklyLessonsPercent}%` }}
+                  />
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-start gap-4 rounded-lg border p-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Calendar className="h-6 w-6 text-primary" />
+            <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                <Calendar className="h-7 w-7" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div className="flex items-start justify-between">
+                  <h4 className="font-bold text-lg text-black">Study 10 Hours</h4>
+                  <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-2 py-1 rounded-md">{weeklyStudyHours}/10</span>
                 </div>
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <h4 className="font-semibold">Study 10 Hours</h4>
-                    <span className="text-sm font-medium text-primary">{weeklyStudyHours}/10</span>
-                  </div>
-                  <Progress value={weeklyHoursPercent} className="h-2" />
+                <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-[#006B6B]" 
+                    style={{ width: `${weeklyHoursPercent}%` }}
+                  />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </PageLayout>
   )
 }
