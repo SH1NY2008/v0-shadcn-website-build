@@ -14,6 +14,8 @@ import { curriculum } from "@/lib/curriculum"
 import { useRouter } from "next/navigation"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { motion } from "framer-motion"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 
 function generateGoogleCalendarLink(
   title: string,
@@ -238,66 +240,87 @@ export default function SchedulePage() {
       ) : sessions.length === 0 ? (
         <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
           <CardContent className="flex h-96 flex-col items-center justify-center gap-6">
-            <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center"
+            >
               <Calendar className="h-10 w-10 text-[#006B6B]" />
-            </div>
+            </motion.div>
             <div className="text-center">
-              <h3 className="text-2xl font-black text-black mb-2">No sessions scheduled</h3>
-              <p className="text-lg font-medium text-[#006B6B]">Create your first study session to get started</p>
+              <motion.h3 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+                className="text-2xl font-black text-black mb-2"
+              >
+                No sessions scheduled
+              </motion.h3>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+                className="text-lg font-medium text-[#006B6B]"
+              >
+                Create your first study session to get started
+              </motion.p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-8">
-          {sortedDates.map((date) => {
+          {sortedDates.map((date, dateIndex) => {
             const dateSessions = groupedSessions[date]
             const today = new Date().toISOString().split("T")[0]
             const isToday = date === today
 
             return (
-              <Card key={date} className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
-                <CardHeader className="border-b-2 border-black/5 pb-4 bg-black/5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-2xl font-black text-black">{formatDate(date)}</CardTitle>
-                      <CardDescription className="text-[#006B6B] font-bold">{dateSessions.length} session(s) scheduled</CardDescription>
+              <ScrollReveal key={date} delay={dateIndex * 0.1} className="w-full">
+                <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+                  <CardHeader className="border-b-2 border-black/5 pb-4 bg-black/5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-2xl font-black text-black">{formatDate(date)}</CardTitle>
+                        <CardDescription className="text-[#006B6B] font-bold">{dateSessions.length} session(s) scheduled</CardDescription>
+                      </div>
+                      {isToday && <Badge className="bg-[#006B6B] text-white border-none text-sm px-3 py-1 rounded-full">Today</Badge>}
                     </div>
-                    {isToday && <Badge className="bg-[#006B6B] text-white border-none text-sm px-3 py-1 rounded-full">Today</Badge>}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-6 p-6">
-                  {dateSessions.map((session) => {
-                    const isCreator = user ? session.creatorId === user.uid : false
-                    const isParticipant = user ? session.participants.includes(user.uid) : false
-                    const course = curriculum.find((c) => c.id === session.courseId)
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6 p-6">
+                    {dateSessions.map((session, sessionIndex) => {
+                      const isCreator = user ? session.creatorId === user.uid : false
+                      const isParticipant = user ? session.participants.includes(user.uid) : false
+                      const course = curriculum.find((c) => c.id === session.courseId)
 
-                    return (
-                      <div key={session.id} className="flex flex-col md:flex-row gap-4 rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
-                          {session.isPublic ? (
-                            <Globe className="h-8 w-8" />
-                          ) : (
-                            <Lock className="h-8 w-8" />
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
-                            <div>
-                              <h4 className="font-black text-xl text-black">{session.title}</h4>
-                              <p className="text-base font-medium text-black/70 mt-1">{session.description}</p>
-                              {course && (
-                                <p className="text-sm font-bold text-[#006B6B] mt-2 bg-white/50 inline-block px-2 py-1 rounded-md">
-                                  Course: {course.name}
-                                </p>
+                      return (
+                        <ScrollReveal key={session.id} delay={sessionIndex * 0.1}>
+                          <div className="flex flex-col md:flex-row gap-4 rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-lg duration-300">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                              {session.isPublic ? (
+                                <Globe className="h-8 w-8" />
+                              ) : (
+                                <Lock className="h-8 w-8" />
                               )}
                             </div>
-                            <div className="flex gap-2 mt-2 md:mt-0">
-                              <Badge variant={session.isPublic ? "default" : "secondary"} className="h-fit">
-                                {session.isPublic ? "Public" : "Private"}
-                              </Badge>
-                              {isCreator && <Badge variant="outline" className="h-fit border-black/20">Creator</Badge>}
-                            </div>
-                          </div>
+                            <div className="flex-1 space-y-3">
+                              <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
+                                <div>
+                                  <h4 className="font-black text-xl text-black">{session.title}</h4>
+                                  <p className="text-base font-medium text-black/70 mt-1">{session.description}</p>
+                                  {course && (
+                                    <p className="text-sm font-bold text-[#006B6B] mt-2 bg-white/50 inline-block px-2 py-1 rounded-md">
+                                      Course: {course.name}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 mt-2 md:mt-0">
+                                  <Badge variant={session.isPublic ? "default" : "secondary"} className="h-fit">
+                                    {session.isPublic ? "Public" : "Private"}
+                                  </Badge>
+                                  {isCreator && <Badge variant="outline" className="h-fit border-black/20">Creator</Badge>}
+                                </div>
+                              </div>
                           <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-black/60">
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-[#006B6B]" />
@@ -400,10 +423,12 @@ export default function SchedulePage() {
                           </div>
                         </div>
                       </div>
+                    </ScrollReveal>
                     )
                   })}
                 </CardContent>
-              </Card>
+                </Card>
+              </ScrollReveal>
             )
           })}
         </div>

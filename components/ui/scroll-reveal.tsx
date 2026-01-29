@@ -1,15 +1,16 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { motion, useAnimation, useInView, Variants, HTMLMotionProps } from "framer-motion"
+import { useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 
-interface ScrollRevealProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ScrollRevealProps extends HTMLMotionProps<"div"> {
   children: React.ReactNode
   className?: string
   threshold?: number
   delay?: number
   duration?: number
-  stagger?: number
+  yOffset?: number
 }
 
 export function ScrollReveal({
@@ -17,53 +18,43 @@ export function ScrollReveal({
   className,
   threshold = 0.1,
   delay = 0,
-  duration = 0.8,
-  stagger = 0.1,
+  duration = 0.5,
+  yOffset = 30,
   ...props
 }: ScrollRevealProps) {
-  const [isVisible, setIsVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: "0px 0px -100px 0px" })
+  const controls = useAnimation()
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-          observer.unobserve(entry.target)
-        }
+    if (isInView) {
+      controls.start("visible")
+    }
+  }, [isInView, controls])
+
+  const variants: Variants = {
+    hidden: { opacity: 0, y: yOffset },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: duration,
+        delay: delay,
+        ease: [0.25, 0.46, 0.45, 0.94],
       },
-      {
-        threshold,
-        rootMargin: "0px 0px -50px 0px", // Trigger slightly before element is fully in view
-      }
-    )
-
-    if (ref.current) {
-      observer.observe(ref.current)
-    }
-
-    return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current)
-      }
-    }
-  }, [threshold])
+    },
+  }
 
   return (
-    <div
+    <motion.div
       ref={ref}
-      className={cn(
-        "transition-all ease-out",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
-        className
-      )}
-      style={{
-        transitionDuration: `${duration}s`,
-        transitionDelay: `${delay}s`,
-      }}
+      initial="hidden"
+      animate={controls}
+      variants={variants}
+      className={cn(className)}
       {...props}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }

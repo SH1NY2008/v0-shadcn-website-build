@@ -13,6 +13,7 @@ import { collection, getDocs, query, where, onSnapshot } from "firebase/firestor
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
 import Link from "next/link"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -105,16 +106,18 @@ export default function DashboardPage() {
           { title: "Overall Progress", icon: TrendingUp, value: `${overallProgress}%`, sub: "Across all courses" },
           { title: "Achievements", icon: Award, value: achievements, sub: "Topics completed" }
         ].map((stat, i) => (
-          <Card key={i} className="bg-[#FFB627] border-4 border-black/10 shadow-lg rounded-xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold text-black/70 uppercase tracking-wider">{stat.title}</CardTitle>
-              <stat.icon className="h-5 w-5 text-[#006B6B]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-[#006B6B]">{stat.value}</div>
-              <p className="text-xs font-bold text-black/50 mt-1">{stat.sub}</p>
-            </CardContent>
-          </Card>
+          <ScrollReveal key={i} delay={i * 0.1}>
+            <Card className="bg-[#FFB627] border-4 border-black/10 shadow-lg rounded-xl overflow-hidden hover:-translate-y-2 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-bold text-black/70 uppercase tracking-wider">{stat.title}</CardTitle>
+                <stat.icon className="h-5 w-5 text-[#006B6B]" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-black text-[#006B6B]">{stat.value}</div>
+                <p className="text-xs font-bold text-black/50 mt-1">{stat.sub}</p>
+              </CardContent>
+            </Card>
+          </ScrollReveal>
         ))}
       </div>
 
@@ -131,24 +134,26 @@ export default function DashboardPage() {
                 { name: "Algebra 2 w/ Trig", desc: "Chapter 8: Trigonometric Functions", id: "algebra-2" },
                 { name: "Pre-Calculus", desc: "Chapter 3: Polynomial Functions", id: "precalculus" },
                 { name: "Calculus 1", desc: "Chapter 1: Limits and Continuity", id: "calculus-1" }
-              ].map((course) => (
-                <div key={course.id} className="space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-lg text-black">{course.name}</h4>
-                      <p className="text-sm font-medium text-black/60">{course.desc}</p>
+              ].map((course, i) => (
+                <ScrollReveal key={course.id} delay={i * 0.1}>
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-bold text-lg text-black">{course.name}</h4>
+                        <p className="text-sm font-medium text-black/60">{course.desc}</p>
+                      </div>
+                      <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-sm px-3 py-1 rounded-full">
+                        {coursePercents[course.id] ?? 0}%
+                      </Badge>
                     </div>
-                    <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-sm px-3 py-1 rounded-full">
-                      {coursePercents[course.id] ?? 0}%
-                    </Badge>
+                    <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[#006B6B]" 
+                        style={{ width: `${coursePercents[course.id] ?? 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#006B6B]" 
-                      style={{ width: `${coursePercents[course.id] ?? 0}%` }}
-                    />
-                  </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
 
@@ -165,41 +170,45 @@ export default function DashboardPage() {
             <CardDescription className="text-[#006B6B] font-bold text-lg">Your learning targets for this week</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
-                <Target className="h-7 w-7" />
-              </div>
-              <div className="flex-1 space-y-3">
-                <div className="flex items-start justify-between">
-                  <h4 className="font-bold text-lg text-black">Complete 5 Lessons</h4>
-                  <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-2 py-1 rounded-md">{weeklyCompleted}/5</span>
+            <ScrollReveal delay={0.1}>
+              <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4 transition-all hover:bg-black/10 hover:shadow-md">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                  <Target className="h-7 w-7" />
                 </div>
-                <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[#006B6B]" 
-                    style={{ width: `${weeklyLessonsPercent}%` }}
-                  />
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <h4 className="font-bold text-lg text-black">Complete 5 Lessons</h4>
+                    <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-2 py-1 rounded-md">{weeklyCompleted}/5</span>
+                  </div>
+                  <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#006B6B]" 
+                      style={{ width: `${weeklyLessonsPercent}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
 
-            <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
-                <Calendar className="h-7 w-7" />
-              </div>
-              <div className="flex-1 space-y-3">
-                <div className="flex items-start justify-between">
-                  <h4 className="font-bold text-lg text-black">Study 10 Hours</h4>
-                  <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-2 py-1 rounded-md">{weeklyStudyHours}/10</span>
+            <ScrollReveal delay={0.2}>
+              <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4 transition-all hover:bg-black/10 hover:shadow-md">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                  <Calendar className="h-7 w-7" />
                 </div>
-                <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[#006B6B]" 
-                    style={{ width: `${weeklyHoursPercent}%` }}
-                  />
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <h4 className="font-bold text-lg text-black">Study 10 Hours</h4>
+                    <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-2 py-1 rounded-md">{weeklyStudyHours}/10</span>
+                  </div>
+                  <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#006B6B]" 
+                      style={{ width: `${weeklyHoursPercent}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
           </CardContent>
         </Card>
       </div>

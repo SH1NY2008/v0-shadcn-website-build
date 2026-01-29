@@ -8,6 +8,7 @@ import { curriculum } from "@/lib/curriculum"
 import Link from "next/link"
 import { CourseProgressBadge } from "@/components/course-progress-badge"
 import { TopicProgressButton } from "@/components/topic-progress-button"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 
 const OPENSTAX_RESOURCES = [
   {
@@ -56,13 +57,13 @@ export default function ResourcesPage() {
 
       <div className="space-y-8">
         <Accordion type="multiple" className="space-y-6">
-          {curriculum.map((course) => (
-            <AccordionItem 
-              key={course.id} 
-              value={course.id} 
-              className="border-4 border-black/10 bg-[#FFB627] rounded-2xl shadow-lg px-6 overflow-hidden"
-            >
-              <AccordionTrigger className="hover:no-underline py-6 group">
+          {curriculum.map((course, index) => (
+            <ScrollReveal key={course.id} delay={index * 0.1} className="w-full">
+              <AccordionItem 
+                value={course.id} 
+                className="border-4 border-black/10 bg-[#FFB627] rounded-2xl shadow-lg px-6 overflow-hidden"
+              >
+                <AccordionTrigger className="hover:no-underline py-6 group">
                 <div className="flex items-center gap-4 text-left w-full">
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#006B6B] text-white shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                     <Calculator className="h-7 w-7" />
@@ -101,7 +102,7 @@ export default function ResourcesPage() {
                           {unit.topics.map((topic, topicIdx) => (
                             <div
                               key={topicIdx}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-black/5 bg-white p-4 transition-all hover:shadow-md hover:-translate-y-1"
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-black/5 bg-white p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
                             >
                               <div className="flex-1">
                                 <div className="font-bold text-base text-black">{topic.name}</div>
@@ -125,6 +126,7 @@ export default function ResourcesPage() {
                 </Accordion>
               </AccordionContent>
             </AccordionItem>
+            </ScrollReveal>
           ))}
         </Accordion>
 
@@ -141,7 +143,8 @@ export default function ResourcesPage() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {OPENSTAX_RESOURCES.map((resource, index) => (
-              <div key={index} className="flex flex-col justify-between rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md">
+              <ScrollReveal key={index} delay={index * 0.1} className="h-full">
+                <div className="flex flex-col justify-between rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md h-full">
                 <div className="mb-6">
                   <h3 className="font-bold text-lg text-black mb-2">{resource.title}</h3>
                   <p className="text-sm font-medium text-black/60">{resource.description}</p>
@@ -152,7 +155,8 @@ export default function ResourcesPage() {
                     Access Resource
                   </Link>
                 </Button>
-              </div>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </section>

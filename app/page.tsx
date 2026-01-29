@@ -16,10 +16,14 @@ import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
 import { Progress } from "@/components/ui/progress"
 import { DivideSign, MultiplySign } from "../components/ui/math-symbols"
+import { motion } from "framer-motion"
+import { NumeriaLoader } from "@/components/ui/numeria-loader"
 
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
+  const [showLoader, setShowLoader] = useState(true)
+  const [heroStarted, setHeroStarted] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
@@ -51,8 +55,20 @@ export default function LandingPage() {
     // Base layer: Full viewport background color
     <div className="min-h-screen bg-background p-4 md:p-8 font-sans selection:bg-primary/20 overflow-x-hidden">
       
+      {showLoader && (
+        <NumeriaLoader 
+          onFadeOutStart={() => setHeroStarted(true)} 
+          onComplete={() => setShowLoader(false)} 
+        />
+      )}
+
       {/* Floating Card Container */}
-      <div className="relative mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: heroStarted ? 1 : 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10"
+      >
         
         {/* Navigation inside the card */}
         <div className="absolute top-0 left-0 right-0 z-50">
@@ -63,39 +79,69 @@ export default function LandingPage() {
         <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center px-6 py-24 md:py-32">
           
           {/* Decorative Math Symbols */}
-          <div className="absolute left-10 bottom-10 md:left-12 md:bottom-12 pointer-events-none hidden md:block">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 0.6, delay: 3.1, ease: "easeOut" }}
+            className="absolute left-10 bottom-10 md:left-12 md:bottom-12 pointer-events-none hidden md:block"
+          >
             <DivideSign className="w-32 h-32 md:w-44 md:h-44 text-[#008B8B]" />
-          </div>
-          <div className="absolute right-10 bottom-10 md:right-12 md:bottom-12 pointer-events-none hidden md:block">
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 0.6, delay: 3.1, ease: "easeOut" }}
+            className="absolute right-10 bottom-10 md:right-12 md:bottom-12 pointer-events-none hidden md:block"
+          >
             <MultiplySign className="w-32 h-32 md:w-44 md:h-44 text-[#008B8B]" />
-          </div>
+          </motion.div>
 
-          <ScrollReveal className="text-center max-w-5xl mx-auto z-10 space-y-8">
-            <p className="text-xl md:text-2xl font-bold tracking-wide text-primary uppercase mb-4">
+          <div className="text-center max-w-5xl mx-auto z-10 space-y-8">
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="text-xl md:text-2xl font-bold tracking-wide text-primary uppercase mb-4"
+            >
               Math without the headaches
-            </p>
+            </motion.p>
             
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-card-foreground">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={heroStarted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
+              className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-card-foreground"
+            >
               START LEARNING <br/>
               <span className="relative inline-block px-4">
                 <span className="absolute inset-0 bg-primary -rotate-2 rounded-lg transform scale-105" />
                 <span className="relative text-primary-foreground">WITH CONFIDENCE</span>
               </span>
-            </h1>
+            </motion.h1>
             
-            <p className="text-xl md:text-3xl font-medium text-muted-foreground max-w-3xl mx-auto mt-8 leading-relaxed">
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ duration: 0.4, delay: 1.4, ease: "easeOut" }}
+              className="text-xl md:text-3xl font-medium text-muted-foreground max-w-3xl mx-auto mt-8 leading-relaxed"
+            >
               Numeria helps you master high school math. We guide you to autonomy with tips, lessons, and tracking.
-            </p>
+            </motion.p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={heroStarted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4, delay: 2.2, ease: "easeOut" }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
+            >
               <Button size="lg" className="h-16 px-10 text-xl font-bold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
                 I am a Student
               </Button>
               <Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-full hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
                 I am a Teacher
               </Button>
-            </div>
-          </ScrollReveal>
+            </motion.div>
+          </div>
         </section>
 
         {/* Value Proposition */}
@@ -219,7 +265,7 @@ export default function LandingPage() {
           </div>
         </footer>
 
-      </div>
+      </motion.div>
     </div>
   )
 }
