@@ -12,7 +12,7 @@ const SCRAMBLE_INTERVAL = 50 // ms
 const SETTLE_DELAY_START = 800 // ms - time before first letter settles
 const SETTLE_STAGGER = 100 // ms - time between letters settling
 const HOLD_DURATION = 500 // ms - hold after all settled
-const FADE_DURATION = 500 // ms - fade out duration
+const FADE_DURATION = 600 // ms - fade out duration (matches new requirement)
 
 const LetterScrambler = ({ 
   targetChar, 
@@ -85,6 +85,7 @@ const LetterScrambler = ({
 
 export function NumeriaLoader({ onFadeOutStart, onComplete }: NumeriaLoaderProps) {
   const [isVisible, setIsVisible] = useState(true)
+  const [showMergedText, setShowMergedText] = useState(false)
   
   useEffect(() => {
     // Calculate total time until we should start fading out
@@ -93,33 +94,55 @@ export function NumeriaLoader({ onFadeOutStart, onComplete }: NumeriaLoaderProps
     const lastLetterSettleTime = SETTLE_DELAY_START + ((BRAND_NAME.length - 1) * SETTLE_STAGGER)
     const startFadeTime = lastLetterSettleTime + HOLD_DURATION
     
+    // Switch to merged text slightly before fade out to prevent flicker
+    const mergeTimer = setTimeout(() => {
+        setShowMergedText(true)
+    }, startFadeTime - 50)
+
     const timer = setTimeout(() => {
       setIsVisible(false)
       onFadeOutStart()
     }, startFadeTime)
 
-    return () => clearTimeout(timer)
+    return () => {
+        clearTimeout(timer)
+        clearTimeout(mergeTimer)
+    }
   }, [onFadeOutStart])
 
   return (
     <AnimatePresence onExitComplete={onComplete}>
       {isVisible && (
-        <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#FFB627]"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: FADE_DURATION / 1000, ease: "easeInOut" }}
-        >
-          <div className="flex">
-            {BRAND_NAME.split("").map((char, index) => (
-              <LetterScrambler 
-                key={index} 
-                targetChar={char} 
-                index={index} 
-              />
-            ))}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          {/* Background Layer - Fades out on exit */}
+          <motion.div
+            className="absolute inset-0 bg-[#FFB627]"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: FADE_DURATION / 1000, ease: "easeInOut" }}
+          />
+
+          {/* Text Layer - Flies to navbar on exit via layoutId */}
+          <div className="relative z-10 flex">
+            {showMergedText ? (
+                <motion.span 
+                    className="text-6xl md:text-8xl font-black tracking-widest text-[#2C2C2C]"
+                    layoutId="numeria-logo-text"
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                >
+                    {BRAND_NAME}
+                </motion.span>
+            ) : (
+                BRAND_NAME.split("").map((char, index) => (
+                    <LetterScrambler 
+                        key={index} 
+                        targetChar={char} 
+                        index={index} 
+                    />
+                ))
+            )}
           </div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   )

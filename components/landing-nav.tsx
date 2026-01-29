@@ -22,8 +22,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { motion } from "framer-motion"
 
-export function LandingNav() {
+interface LandingNavProps {
+  heroStarted?: boolean
+}
+
+export function LandingNav({ heroStarted = true }: LandingNavProps) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
 
@@ -35,7 +40,12 @@ export function LandingNav() {
   return (
     <nav className="w-full px-6 py-6 md:px-12 flex items-center justify-between relative z-50">
       {/* Left Group */}
-      <div className="flex-1 flex items-center justify-start gap-6">
+      <motion.div 
+        className="flex-1 flex items-center justify-start gap-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: heroStarted ? 1 : 0 }}
+        transition={{ duration: 0.6 }}
+      >
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -107,20 +117,39 @@ export function LandingNav() {
         >
           Resources
         </Link>
-      </div>
+      </motion.div>
 
       {/* Center Logo */}
       <div className="flex-shrink-0 flex items-center justify-center">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:-translate-y-1 group-hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <motion.div 
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:-translate-y-1 group-hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: heroStarted ? 1 : 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <Calculator className="h-6 w-6" />
-          </div>
-          <span className="text-2xl font-black tracking-tighter">Numeria</span>
+          </motion.div>
+          
+          {heroStarted && (
+            <motion.span 
+              className="text-4xl font-black tracking-tighter"
+              layoutId="numeria-logo-text"
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            >
+              NUMERIA
+            </motion.span>
+          )}
         </Link>
       </div>
 
       {/* Right Group */}
-      <div className="flex-1 flex items-center justify-end gap-4">
+      <motion.div 
+        className="flex-1 flex items-center justify-end gap-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: heroStarted ? 1 : 0 }}
+        transition={{ duration: 0.6 }}
+      >
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -175,7 +204,7 @@ export function LandingNav() {
             </Button>
           </>
         )}
-      </div>
+      </motion.div>
     </nav>
   )
 }

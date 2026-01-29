@@ -64,15 +64,18 @@ export default function LandingPage() {
 
       {/* Floating Card Container */}
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: heroStarted ? 1 : 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ 
+            opacity: heroStarted ? 1 : 0,
+            scale: heroStarted ? 1 : 0.96 
+        }}
+        transition={{ duration: 0.6, ease: "easeInOut" }}
         className="relative mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10"
       >
         
         {/* Navigation inside the card */}
         <div className="absolute top-0 left-0 right-0 z-50">
-           <LandingNav />
+           <LandingNav heroStarted={heroStarted} />
         </div>
 
         {/* Hero Section */}
@@ -100,7 +103,7 @@ export default function LandingPage() {
             <motion.p 
               initial={{ opacity: 0 }}
               animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.4, delay: 0.8, ease: "easeOut" }}
               className="text-xl md:text-2xl font-bold tracking-wide text-primary uppercase mb-4"
             >
               Math without the headaches
@@ -109,7 +112,7 @@ export default function LandingPage() {
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={heroStarted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
+              transition={{ duration: 0.5, delay: 1.2, ease: "easeOut" }}
               className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-card-foreground"
             >
               START LEARNING <br/>
@@ -122,7 +125,7 @@ export default function LandingPage() {
             <motion.p 
               initial={{ opacity: 0 }}
               animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.4, delay: 1.4, ease: "easeOut" }}
+              transition={{ duration: 0.4, delay: 1.8, ease: "easeOut" }}
               className="text-xl md:text-3xl font-medium text-muted-foreground max-w-3xl mx-auto mt-8 leading-relaxed"
             >
               Numeria helps you master high school math. We guide you to autonomy with tips, lessons, and tracking.
