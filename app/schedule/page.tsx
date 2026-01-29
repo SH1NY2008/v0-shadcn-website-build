@@ -276,7 +276,7 @@ export default function SchedulePage() {
             const isToday = date === today
 
             return (
-              <ScrollReveal key={date} delay={dateIndex * 0.1} className="w-full">
+              <ScrollReveal key={date} delay={dateIndex * 0.1} yOffset={40} scaleOffset={0.04} className="w-full">
                 <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
                   <CardHeader className="border-b-2 border-black/5 pb-4 bg-black/5">
                     <div className="flex items-center justify-between">
@@ -294,7 +294,7 @@ export default function SchedulePage() {
                       const course = curriculum.find((c) => c.id === session.courseId)
 
                       return (
-                        <ScrollReveal key={session.id} delay={sessionIndex * 0.1}>
+                        <ScrollReveal key={session.id} delay={sessionIndex * 0.1} yOffset={20}>
                           <div className="flex flex-col md:flex-row gap-4 rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-lg duration-300">
                             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
                               {session.isPublic ? (

@@ -143,7 +143,7 @@ export default function ResourcesPage() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {OPENSTAX_RESOURCES.map((resource, index) => (
-              <ScrollReveal key={index} delay={index * 0.1} className="h-full">
+              <ScrollReveal key={index} delay={index * 0.1} yOffset={40} scaleOffset={0.04} className="h-full">
                 <div className="flex flex-col justify-between rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md h-full">
                 <div className="mb-6">
                   <h3 className="font-bold text-lg text-black mb-2">{resource.title}</h3>

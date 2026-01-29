@@ -106,7 +106,7 @@ export default function DashboardPage() {
           { title: "Overall Progress", icon: TrendingUp, value: `${overallProgress}%`, sub: "Across all courses" },
           { title: "Achievements", icon: Award, value: achievements, sub: "Topics completed" }
         ].map((stat, i) => (
-          <ScrollReveal key={i} delay={i * 0.1}>
+          <ScrollReveal key={i} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
             <Card className="bg-[#FFB627] border-4 border-black/10 shadow-lg rounded-xl overflow-hidden hover:-translate-y-2 hover:shadow-xl transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-bold text-black/70 uppercase tracking-wider">{stat.title}</CardTitle>
@@ -129,23 +129,17 @@ export default function DashboardPage() {
             <CardDescription className="text-[#006B6B] font-bold text-lg">Continue where you left off</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            <div className="space-y-6">
-              {[
-                { name: "Algebra 2 w/ Trig", desc: "Chapter 8: Trigonometric Functions", id: "algebra-2" },
-                { name: "Pre-Calculus", desc: "Chapter 3: Polynomial Functions", id: "precalculus" },
-                { name: "Calculus 1", desc: "Chapter 1: Limits and Continuity", id: "calculus-1" }
-              ].map((course, i) => (
-                <ScrollReveal key={course.id} delay={i * 0.1}>
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-bold text-lg text-black">{course.name}</h4>
-                        <p className="text-sm font-medium text-black/60">{course.desc}</p>
-                      </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {curriculum.map((course, i) => (
+                <ScrollReveal key={course.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
+                  <div className="rounded-xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-bold text-lg text-black">{course.name}</h4>
                       <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-sm px-3 py-1 rounded-full">
                         {coursePercents[course.id] ?? 0}%
                       </Badge>
                     </div>
+                    <p className="text-sm font-medium text-black/60 mb-3">Master the fundamentals of {course.name}</p>
                     <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-[#006B6B]" 
@@ -170,7 +164,7 @@ export default function DashboardPage() {
             <CardDescription className="text-[#006B6B] font-bold text-lg">Your learning targets for this week</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            <ScrollReveal delay={0.1}>
+            <ScrollReveal delay={0.1} yOffset={40} scaleOffset={0.04}>
               <div className="flex items-start gap-4 rounded-xl border-2 border-black/5 bg-black/5 p-4 transition-all hover:bg-black/10 hover:shadow-md">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
                   <Target className="h-7 w-7" />

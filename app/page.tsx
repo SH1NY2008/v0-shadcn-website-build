@@ -174,7 +174,7 @@ export default function LandingPage() {
                   desc: "Visual progress tracking to keep you motivated and aware of your improvements."
                 }
               ].map((item, i) => (
-                <ScrollReveal key={i} delay={i * 0.1} className="group">
+                <ScrollReveal key={i} delay={i * 0.1} yOffset={40} scaleOffset={0.04} className="group">
                   <div className="flex flex-col items-center text-center space-y-6 p-8 rounded-[2rem] bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 h-full">
                     <div className="p-4 rounded-2xl bg-secondary text-secondary-foreground border-2 border-black mb-2">
                       <item.icon className="h-10 w-10" />
@@ -192,14 +192,18 @@ export default function LandingPage() {
         <section className="w-full px-6 py-24 md:py-32">
           <div className="max-w-[1200px] mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <ScrollReveal>
-                <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-                  EXPLORE <span className="inline-block bg-primary text-white px-4 py-1 -rotate-2 rounded-lg transform">COURSES</span>
-                </h2>
-                <p className="text-xl text-foreground/80 font-medium max-w-md">
-                  Start your journey with one of our core mathematics courses.
-                </p>
-              </ScrollReveal>
+              <div className="max-w-xl">
+                <ScrollReveal>
+                  <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                    EXPLORE <span className="inline-block bg-primary text-white px-4 py-1 -rotate-2 rounded-lg transform">COURSES</span>
+                  </h2>
+                </ScrollReveal>
+                <ScrollReveal delay={0.15} duration={0.8}>
+                  <p className="text-xl text-foreground/80 font-medium max-w-md">
+                    Start your journey with one of our core mathematics courses.
+                  </p>
+                </ScrollReveal>
+              </div>
               <ScrollReveal delay={0.2}>
                 <Button variant="ghost" className="text-xl font-bold hover:bg-transparent hover:text-primary transition-colors group" asChild>
                   <Link href="/resources">
@@ -211,7 +215,7 @@ export default function LandingPage() {
 
             <div className="grid md:grid-cols-2 gap-8">
               {curriculum.slice(0, 4).map((course, i) => (
-                <ScrollReveal key={course.id} delay={i * 0.1}>
+                <ScrollReveal key={course.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
                   <Link href={`/resources?course=${course.id}`} className="block group h-full">
                     <Card className="h-full rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 bg-white overflow-hidden">
                       <CardHeader className="bg-muted/30 border-b-4 border-black p-8">
