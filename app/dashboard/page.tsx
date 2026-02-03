@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, TrendingUp, Award, BookOpen, Target } from "lucide-react"
+import { Calendar, Clock, TrendingUp, Award, BookOpen, Target, FunctionSquare, Triangle, Activity, Sigma, Pi, ArrowRight } from "lucide-react"
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { collection, getDocs, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
+import questionsData from "../data/questions.json"
 import Link from "next/link"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 
@@ -87,6 +88,27 @@ export default function DashboardPage() {
       for (const u of unsubs) u()
     }
   }, [user])
+
+  // Group questions by category
+  const quizCategories = questionsData.reduce((acc: any, q: any) => {
+    if (!acc[q.category]) {
+      acc[q.category] = []
+    }
+    acc[q.category].push(q)
+    return acc
+  }, {})
+
+  const getCategoryIcon = (category: string) => {
+    const lower = category.toLowerCase()
+    if (lower.includes('algebra')) return <FunctionSquare className="h-5 w-5" />
+    if (lower.includes('geometry')) return <Triangle className="h-5 w-5" />
+    if (lower.includes('precalculus')) return <Activity className="h-5 w-5" />
+    if (lower.includes('calculus')) return <Sigma className="h-5 w-5" />
+    if (lower.includes('limit')) return <Pi className="h-5 w-5" />
+    
+    return <BookOpen className="h-5 w-5" />
+  }
+
   return (
     <PageLayout>
       <div className="mb-12 text-center">
@@ -203,6 +225,55 @@ export default function DashboardPage() {
                 </div>
               </div>
             </ScrollReveal>
+          </CardContent>
+        </Card>
+
+        {/* Practice Center */}
+        <Card className="col-span-1 lg:col-span-2 bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+          <CardHeader className="border-b-2 border-black/5 pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-black text-black">Practice Center</CardTitle>
+                <CardDescription className="text-[#006B6B] font-bold text-lg">Test your knowledge with quick quizzes</CardDescription>
+              </div>
+              <Button variant="outline" className="hidden sm:flex border-2 border-black/10 bg-white/50 hover:bg-white text-black font-bold" asChild>
+                <Link href="/quizzes">View All Quizzes</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Object.keys(quizCategories).slice(0, 4).map((category, i) => (
+                <ScrollReveal key={category} delay={0.3 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
+                  <Link href={`/quizzes/${encodeURIComponent(category)}`} className="block group h-full">
+                    <div className="h-full rounded-xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="p-2 bg-[#006B6B]/10 rounded-lg text-[#006B6B] group-hover:bg-[#006B6B] group-hover:text-white transition-colors">
+                            {getCategoryIcon(category)}
+                          </div>
+                          <Badge variant="secondary" className="text-xs bg-white/50">
+                            {quizCategories[category].length} Qs
+                          </Badge>
+                        </div>
+                        <h4 className="font-bold text-lg text-black mb-1 line-clamp-1">{category}</h4>
+                        <p className="text-sm font-medium text-black/60 mb-4 line-clamp-2">
+                          Practice {category.toLowerCase()} problems
+                        </p>
+                      </div>
+                      <div className="flex items-center text-[#006B6B] font-bold text-sm group-hover:translate-x-1 transition-transform">
+                        Start Quiz <ArrowRight className="ml-1 h-4 w-4" />
+                      </div>
+                    </div>
+                  </Link>
+                </ScrollReveal>
+              ))}
+            </div>
+            <div className="mt-6 sm:hidden">
+              <Button className="w-full bg-[#006B6B] text-white font-bold" asChild>
+                <Link href="/quizzes">View All Quizzes</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
