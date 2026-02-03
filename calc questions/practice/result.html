@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column; /* Change to column layout */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .result {
+            font-size: 24px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 20px; /* ADDED: Add margin to separate from buttons */
+        }
+        .correct-answer {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .button-container button {
+            padding: 15px 30px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 25px;
+}
+    </style>
+</head>
+<body>
+    <div class="result">
+        <div id="resultText"></div>
+        <div id="correctAnswer" class="correct-answer"></div>
+    </div>
+    <div class="button-container">
+        <button onclick="goBack()">Go Back</button>
+        <!-- <button onclick="nextQuestion()">Next Question</button> -->
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const isCorrect = urlParams.get('correct') === 'true';
+        const correctAnswerLetter = urlParams.get('correctAnswer');
+        const correctFormula = urlParams.get('correctFormula');
+        const problemNumber = urlParams.get('problemNumber');
+        const resultText = document.getElementById('resultText');
+        const correctAnswer = document.getElementById('correctAnswer');
+        
+        if (isCorrect) {
+            resultText.textContent = "Your answer is correct!";
+            resultText.style.color = "green";
+        } else {
+            resultText.textContent = "Your answer is wrong.";
+            resultText.style.color = "red";
+            correctAnswer.innerHTML = `The correct answer is  ${correctAnswerLetter}: \\(${correctFormula}\\)`;
+        }
+
+        function goBack() {
+            window.location.href = `prob${problemNumber}.html`;
+        }
+
+        // function nextQuestion() {
+        //     window.location.href = 'prob29.html';
+        // }
+
+    </script>
+</body>
+</html>

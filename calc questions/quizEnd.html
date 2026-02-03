@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Result</title>
+    <script src="questionManager.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 2em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        table {
+            border-collapse: collapse;
+            width: auto;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td:first-child {
+            text-align: left;
+        }
+        th:first-child, #wrongProblemsTable th:first-child {
+            width: 60%;
+        }
+        #wrongProblems table {
+            width: 100%; /* Changed from 120% to 100% to avoid overflow */
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        button {
+            font-size: 2.5em;
+            padding: 10px 40px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #wrongProblems table {
+            margin-top: 20px;
+        }
+
+        /* Media query for screens smaller than 600px wide */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 8vw; /* Larger font size on smaller screens */
+            }
+            h2 {
+                font-size: 6vw; /* Larger font size on smaller screens */
+            }
+            button {
+                font-size: 6vw; /* Larger font size on smaller screens */
+                padding: 8px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Quiz Result</h1>
+
+    <div id="finalScore"></div>
+    <div id="topicScores"></div>
+    <div id="unknownProblems"></div>
+
+    <h2>Wrong Answers</h2>
+    <div id="wrongProblems">
+        <table id="wrongProblemsTable">
+            <thead>
+                <tr>
+                    <th>Topic</th>
+                    <th>Problem</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Wrong problems will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <button onclick="resetQuiz()">Restart Quiz</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const correctAnswers = parseInt(localStorage.getItem('correctAnswers') || '0');
+            const totalAnswered = parseInt(localStorage.getItem('totalAnswered') || '0');
+            const topicScores = getTopicScores();
+
+            const finalScoreElement = document.getElementById('finalScore');
+            finalScoreElement.textContent = `Final Score: ${correctAnswers}/${totalAnswered}`;
+
+            const topicScoresElement = document.getElementById('topicScores');
+            const table = document.createElement('table');
+            const headerRow = table.insertRow();
+            ['Topic', 'Correct', 'Total', 'Percentage'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+
+            const orderedTopics = [
+                "Limits & Continuity",
+                "Differentiation",
+                "Application of Differentiation",
+                "Integration",
+                "Application of Integration",
+                "Differential Equations",
+                "Parametric, Polar & Vector Functions",
+                "Infinite Sequences and Series"
+            ];
+
+            orderedTopics.forEach(topic => {
+                if (topicScores[topic]) {
+                    const row = table.insertRow();
+                    const scores = topicScores[topic];
+                    const correctScore = scores.correct || 0;
+                    const totalAttempts = scores.total || 0;
+                    const percentage = totalAttempts > 0 ? (correctScore / totalAttempts * 100).toFixed(2) : '0.00';
+                    
+                    [topic, correctScore, totalAttempts, `${percentage}%`].forEach(text => {
+                        const cell = row.insertCell();
+                        cell.textContent = text;
+                    });
+                }
+            });
+
+            topicScoresElement.appendChild(table);
+
+            // Display unknown problems
+            const unknownProblemsElement = document.getElementById('unknownProblems');
+            if (topicScores.Unknown && topicScores.Unknown.problems) {
+                unknownProblemsElement.innerHTML = `<h3>Unknown Category Problems:</h3>
+                    <p>The following problems could not be categorized: ${topicScores.Unknown.problems.join(', ')}</p>`;
+            }
+
+            // Display wrong problems
+            displayWrongProblems();
+        });
+
+        function displayWrongProblems() {
+            const wrongAnswers = JSON.parse(localStorage.getItem('wrongAnswers') || '[]');
+            const tableBody = document.querySelector('#wrongProblemsTable tbody');
+            
+            wrongAnswers.forEach(wrong => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = wrong.topic;
+                row.insertCell(1).textContent = wrong.problemNumber;
+                const linkCell = row.insertCell(2);
+                const link = document.createElement('a');
+                link.href = `https://dongzhang84.github.io/AP_Calculus_BC_Question_Bank/practice/prob${wrong.problemNumber.toString().padStart(3, '0')}.html`;
+                link.textContent = 'Review';
+                link.target = '_blank';
+                linkCell.appendChild(link);
+            });
+
+            // Hide the wrong problems section if there are no wrong answers
+            const wrongProblemsSection = document.getElementById('wrongProblems');
+            if (wrongAnswers.length === 0) {
+                wrongProblemsSection.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

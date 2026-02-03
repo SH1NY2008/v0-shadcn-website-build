@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Question</title>
+    <script src="../globalVariables.js"></script>
+    <script src="../questionManager.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../css/prob_style.css">
+</head>
+<body>
+    <div class="center">
+        <img src="prob039.png" width="350" height="auto">
+    </div> 
+
+    <div class="question" data-tag="Differentiation">
+        <p>
+            Let \( f \) be a differentiable function. The figure above shows the graph of the line 
+            tangent to the graph of \( f \) at \( x = 0 \). Of the following, which must be true?
+        </p>
+    </div>
+    
+    <div class="options">
+        <div class="option" onclick="selectOption(this)" data-value="A">
+            (A) \( f'(0) = -f(0) \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="B">
+            (B) \( f'(0) < f(0) \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="C">
+            (C) \( f'(0) = f(0) \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="D">
+            (D) \( f'(0) > f(0) \)
+        </div>
+    </div>
+    
+    
+    <div class="button-container">
+        <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    </div>
+
+    <script>
+        // Mark this question as seen when the page loads
+        markQuestionAsSeen(window.location.pathname.split('/').pop());
+        
+        function selectOption(element) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function submitAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (selectedOption) {
+                const selectedValue = selectedOption.getAttribute('data-value');
+                const correctAnswer = 'C'; // The correct answer is option A
+                const correctFormula = " f'(0) = f(0) ";
+                const isCorrect = selectedValue === correctAnswer;
+                
+                updateScore(isCorrect);
+                loadNextQuestion();
+            } else {
+                alert('Please select an answer before submitting.');
+            }
+        }
+
+        // Display current score
+        const correctAnswers = localStorage.getItem('correctAnswers') || '0';
+        const totalAnswered = localStorage.getItem('totalAnswered') || '0';
+        // document.getElementById('score').textContent = `Score: ${correctAnswers}/${totalAnswered}`;
+    </script>
+</body>
+</html>

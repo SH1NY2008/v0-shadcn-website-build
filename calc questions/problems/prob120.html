@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Question</title>
+    <script src="../globalVariables.js"></script>
+    <script src="../questionManager.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../css/prob_style.css">
+</head>
+<body>
+    <!-- <div class="center">
+        <img src="prob110.png" width="350" height="auto">
+    </div>  -->
+
+    <div class="question" data-tag="Infinite Sequences and Series">
+        <p>
+            Which of the following statements about the series \(\sum_{n=1}^{\infty} \frac{1}{2^n - n}\) is true?
+        </p>
+    </div>
+    
+    <div class="options">
+        <div class="option" onclick="selectOption(this)" data-value="A">
+            (A) The series diverges by the \(n\)th term test.
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="B">
+            (B) The series diverges by limit comparison to the harmonic series \(\sum_{n=1}^{\infty} \frac{1}{n}\).
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="C">
+            (C) The series converges by the \(n\)th term test.
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="D">
+            (D) The series converges by limit comparison to the geometric series \(\sum_{n=1}^{\infty} \frac{1}{2^n}\).
+        </div>
+    </div>
+    
+    
+    <div class="button-container">
+        <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    </div>
+
+    <script>
+        // Mark this question as seen when the page loads
+        markQuestionAsSeen(window.location.pathname.split('/').pop());
+        
+        function selectOption(element) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function submitAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (selectedOption) {
+                const selectedValue = selectedOption.getAttribute('data-value');
+                const correctAnswer = 'D'; // The correct answer is option A
+                const correctFormula = " \\text{The series converges by limit comparison to the geometric series } \\sum_{n=1}^{\\infty} \\frac{1}{2^n}. ";
+                const isCorrect = selectedValue === correctAnswer;
+                
+                updateScore(isCorrect);
+                loadNextQuestion();
+            } else {
+                alert('Please select an answer before submitting.');
+            }
+        }
+
+        // Display current score
+        const correctAnswers = localStorage.getItem('correctAnswers') || '0';
+        const totalAnswered = localStorage.getItem('totalAnswered') || '0';
+        // document.getElementById('score').textContent = `Score: ${correctAnswers}/${totalAnswered}`;
+    </script>
+</body>
+</html>

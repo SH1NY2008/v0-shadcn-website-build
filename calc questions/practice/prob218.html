@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Question</title>
+    <script src="../globalVariables.js"></script>
+    <script src="../questionManager.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../css/prob_style.css">
+</head>
+<body>
+    <!-- <div class="center">
+        <img src="prob217.png" width="400" height="auto">
+    </div>  -->
+
+    <div class="question" data-tag="Differentiation">
+        <p>
+            Let \( y = f(x) \) define a twice-differentiable function and let \( y = t(x) \) be the line tangent to the graph of \( f \) at \( x = 2 \). If \( t(x) \geq f(x) \) for all real \( x \), which of the following must be true?
+        </p>
+    </div>
+    
+    <div class="options">
+        <div class="option" onclick="selectOption(this)" data-value="A">
+            (A) \( f(2) \geq 0 \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="B">
+            (B) \( f'(2) \geq 0 \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="C">
+            (C) \( f'(2) \leq 0 \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="D">
+            (D) \( f''(2) \geq 0 \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="E">
+            (E) \( f''(2) \leq 0 \)
+        </div>
+    </div>    
+    
+    <div class="button-container">
+        <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    </div>
+
+    <script>
+        // Mark this question as seen when the page loads
+        markQuestionAsSeen(window.location.pathname.split('/').pop());
+        
+        function selectOption(element) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function submitAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (selectedOption) {
+                const selectedValue = selectedOption.getAttribute('data-value');
+                const correctAnswer = 'E'; // The correct answer is option A
+                const correctFormula = " f''(2) \\leq 0 ";
+                const isCorrect = selectedValue === correctAnswer;
+                const problemNumber = getProblemNumber();
+                
+                // Redirect to a new page with the result
+                window.location.href = `result.html?correct=${isCorrect}&correctAnswer=${correctAnswer}&correctFormula=${encodeURIComponent(correctFormula)}&problemNumber=${problemNumber}`;
+            } else {
+                alert('Please select an answer before submitting.');
+            }
+        }
+
+        // Function to extract problem number from URL
+        function getProblemNumber() {
+            const path = window.location.pathname;
+            const match = path.match(/prob(\d+)\.html/);
+            return match ? match[1] : null;
+        }
+    </script>
+</body>
+</html>

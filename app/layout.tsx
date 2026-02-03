@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import Script from "next/script"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -38,6 +39,28 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
+        <Script
+          id="mathjax-config"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.MathJax = {
+                tex: {
+                  inlineMath: [['\\\\(', '\\\\)']],
+                  displayMath: [['\\\\[', '\\\\]']]
+                },
+                svg: {
+                  fontCache: 'global'
+                }
+              };
+            `,
+          }}
+        />
+        <Script
+          id="mathjax-script"
+          strategy="afterInteractive"
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+        />
         {children}
         <Analytics />
       </body>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Question</title>
+    <script src="../globalVariables.js"></script>
+    <script src="../questionManager.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../css/prob_style.css">
+</head>
+<body>
+    <!-- <div class="center">
+        <img src="prob142.png" width="300" height="auto">
+    </div>  -->
+
+    <div class="question" data-tag="Differentiation">
+        <p>
+            Let \( f \) be the function given by \( f(x) = 3 - 2x \). 
+            If \( g \) is a function with derivative given by \( g'(x) = f(x)f'(x)(x - 3) \), 
+            on what intervals is \( g \) increasing?
+        </p>
+    </div>
+    
+    <div class="options">
+        <div class="option" onclick="selectOption(this)" data-value="A">
+            (A) \( \left( -\infty, \frac{3}{2} \right] \) and \( [3, \infty) \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="B">
+            (B) \( \left( -\infty, \frac{3}{2} \right] \) only
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="C">
+            (C) \( \left[ \frac{3}{2}, 3 \right] \) only
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="D">
+            (D) \( \left[ \frac{3}{2}, \infty \right) \)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="E">
+            (E) \( [3, \infty) \) only
+        </div>
+    </div>    
+    
+    <div class="button-container">
+        <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    </div>
+
+    <script>
+        // Mark this question as seen when the page loads
+        markQuestionAsSeen(window.location.pathname.split('/').pop());
+        
+        function selectOption(element) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function submitAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (selectedOption) {
+                const selectedValue = selectedOption.getAttribute('data-value');
+                const correctAnswer = 'A'; // The correct answer is option A
+                const correctFormula = " \\left( -\\infty, \\frac{3}{2} \\right] \\text{ and } [3, \\infty) ";
+                const isCorrect = selectedValue === correctAnswer;
+                
+                updateScore(isCorrect);
+                loadNextQuestion();
+            } else {
+                alert('Please select an answer before submitting.');
+            }
+        }
+
+        // Display current score
+        const correctAnswers = localStorage.getItem('correctAnswers') || '0';
+        const totalAnswered = localStorage.getItem('totalAnswered') || '0';
+        // document.getElementById('score').textContent = `Score: ${correctAnswers}/${totalAnswered}`;
+    </script>
+</body>
+</html>

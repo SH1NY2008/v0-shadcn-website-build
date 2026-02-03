@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Question</title>
+    <script src="../globalVariables.js"></script>
+    <script src="../questionManager.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../css/prob_style.css">
+</head>
+<body>
+    <!-- <div class="center">
+        <img src="prob148.png" width="300" height="auto">
+    </div>  -->
+
+    <div class="question" data-tag="Infinite Sequences and Series">
+        <p>
+            What are all values of \(p\) for which the series \(\sum_{n=1}^{\infty} \frac{1}{n^{2p} + n}\) diverges?
+        </p>
+    </div>
+    
+    <div class="options">
+        <div class="option" onclick="selectOption(this)" data-value="A">
+            (A) \(p \leq \frac{1}{2}\)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="B">
+            (B) \(p < \frac{1}{2}\) only
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="C">
+            (C) \(p \geq \frac{1}{2}\)
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="D">
+            (D) \(p > \frac{1}{2}\) only
+        </div>
+        <div class="option" onclick="selectOption(this)" data-value="E">
+            (E) The series diverges for all \(p\).
+        </div>
+    </div>    
+    
+    <div class="button-container">
+        <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    </div>
+
+    <script>
+        // Mark this question as seen when the page loads
+        markQuestionAsSeen(window.location.pathname.split('/').pop());
+        
+        function selectOption(element) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function submitAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (selectedOption) {
+                const selectedValue = selectedOption.getAttribute('data-value');
+                const correctAnswer = 'A'; // The correct answer is option A
+                const correctFormula = " p \\leq \\frac{1}{2} ";
+                const isCorrect = selectedValue === correctAnswer;
+                const problemNumber = getProblemNumber();
+                
+                // Redirect to a new page with the result
+                window.location.href = `result.html?correct=${isCorrect}&correctAnswer=${correctAnswer}&correctFormula=${encodeURIComponent(correctFormula)}&problemNumber=${problemNumber}`;
+            } else {
+                alert('Please select an answer before submitting.');
+            }
+        }
+
+        // Function to extract problem number from URL
+        function getProblemNumber() {
+            const path = window.location.pathname;
+            const match = path.match(/prob(\d+)\.html/);
+            return match ? match[1] : null;
+        }
+    </script>
+</body>
+</html>

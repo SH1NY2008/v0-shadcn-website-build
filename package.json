@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "update-quizzes": "node scripts/process-questions.js"
   },
   "dependencies": {
     "@emailjs/browser": "4.4.1",

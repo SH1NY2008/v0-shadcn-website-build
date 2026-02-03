@@ -102,6 +102,12 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
         >
           Resources
         </Link>
+        <Link 
+          href="/quizzes" 
+          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
+        >
+          Quizzes
+        </Link>
       </motion.div>
 
       {/* Center Logo */}
