@@ -113,11 +113,11 @@ export default function LandingPage() {
               transition={{ duration: 0.4, delay: 2.2, ease: "easeOut" }}
               className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
             >
-              <Button size="lg" className="h-16 px-10 text-xl font-bold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
-                I am a Student
+              <Button size="lg" className="w-52 h-16 px-10 text-xl font-bold rounded-full bg-primary text-primary-foreground hover:bg-black hover:text-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
+                Sign Up
               </Button>
-              <Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-full hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
-                I am a Teacher
+              <Button size="lg" variant="secondary" className="w-52 h-16 px-10 text-xl font-bold rounded-full hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
+                Login
               </Button>
             </motion.div>
           </div>
@@ -241,7 +241,7 @@ export default function LandingPage() {
 
         {/* Footer */}
         <footer className="w-full py-12 border-t-4 border-black bg-muted/20">
-          <div className="max-w-[1200px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-base font-medium text-muted-foreground">
+          <div className="max-w-[1200px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-base font-medium text-black">
             <p>© 2026 Numeria.inc. All rights reserved.</p>
             <div className="flex gap-8 mt-4 md:mt-0">
               <Link href="#" className="hover:text-foreground transition-colors">Privacy</Link>
