@@ -113,12 +113,16 @@ export default function LandingPage() {
               transition={{ duration: 0.4, delay: 2.2, ease: "easeOut" }}
               className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
             >
-              <Button size="lg" className="w-52 h-16 px-10 text-xl font-bold rounded-full bg-primary text-primary-foreground hover:bg-black hover:text-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
-                Sign Up
-              </Button>
-              <Button size="lg" variant="secondary" className="w-52 h-16 px-10 text-xl font-bold rounded-full hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
-                Login
-              </Button>
+              <Link href="/signup">
+                <Button size="lg" className="w-52 h-16 px-10 text-xl font-bold rounded-full bg-primary text-primary-foreground hover:bg-black hover:text-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
+                  Sign Up
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="secondary" className="w-52 h-16 px-10 text-xl font-bold rounded-full hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black">
+                  Login
+                </Button>
+              </Link>
             </motion.div>
           </div>
         </section>

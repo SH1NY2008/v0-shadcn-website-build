@@ -88,9 +88,6 @@ function LoginForm({
                 </Button>
               </Field>
               
-              <FieldSeparator className="my-4 flex items-center gap-2 text-black font-medium before:h-px before:flex-1 before:bg-black after:h-px after:flex-1 after:bg-black">
-                Or continue with
-              </FieldSeparator>
               
               <Field className="grid grid-cols-3 gap-4">
                 <Button 

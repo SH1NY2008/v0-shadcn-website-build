@@ -1,7 +1,7 @@
 "use client"
 
 import { auth, googleProvider } from "@/lib/firebase"
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth"
+import { signInWithPopup, createUserWithEmailAndPassword } from "firebase/auth"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -18,7 +18,7 @@ import { PageLayout } from "@/components/page-layout"
 import { FieldDescription } from "@/components/ui/field"
 import Link from "next/link"
 
-function LoginForm({
+function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -41,15 +41,15 @@ function LoginForm({
     }
   }
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      await createUserWithEmailAndPassword(auth, email, password)
       router.push("/dashboard")
     } catch (e: any) {
-      setError(e?.message ?? "Failed to sign in")
+      setError(e?.message ?? "Failed to sign up")
     } finally {
       setLoading(false)
     }
@@ -59,11 +59,11 @@ function LoginForm({
     <div className={cn("flex flex-col gap-6 w-full max-w-md mx-auto", className)} {...props}>
       <Card className="overflow-hidden p-0 bg-[#FFB627] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl">
         <CardContent className="grid p-0">
-          <form onSubmit={handleEmailSignIn} className="p-6 md:p-8 flex flex-col gap-6">
+          <form onSubmit={handleEmailSignUp} className="p-6 md:p-8 flex flex-col gap-6">
             <div className="flex flex-col items-center gap-2 text-center">
-              <h1 className="text-3xl font-black text-black tracking-tight uppercase">Welcome back</h1>
+              <h1 className="text-3xl font-black text-black tracking-tight uppercase">Get Started</h1>
               <p className="text-[#006B6B] font-bold">
-                Login to your account
+                Create your account
               </p>
             </div>
             
@@ -80,15 +80,7 @@ function LoginForm({
                 />
               </Field>
               <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password" className="text-black font-bold">Password</FieldLabel>
-                  <Link
-                    href="#"
-                    className="ml-auto text-sm underline-offset-2 hover:underline text-[#006B6B] font-semibold"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <FieldLabel htmlFor="password" className="text-black font-bold">Password</FieldLabel>
                 <Input 
                   id="password" 
                   type="password" 
@@ -105,7 +97,7 @@ function LoginForm({
                   disabled={loading}
                   className="w-full bg-[#006B6B] hover:bg-[#005050] text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all h-12 text-lg"
                 >
-                  {loading ? "Logging in..." : "Login"}
+                  {loading ? "Creating account..." : "Sign Up"}
                 </Button>
               </Field>
               
@@ -129,7 +121,7 @@ function LoginForm({
                 </Button>
               </Field>
               <FieldDescription className="text-center text-black font-medium mt-4">
-                Don&apos;t have an account? <Link href="/signup" className="text-[#006B6B] hover:underline font-bold">Sign up</Link>
+                Already have an account? <Link href="/login" className="text-[#006B6B] hover:underline font-bold">Login</Link>
               </FieldDescription>
             </FieldGroup>
           </form>
@@ -144,10 +136,10 @@ function LoginForm({
   )
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <PageLayout className="flex items-center justify-center min-h-[60vh]">
-      <LoginForm />
+      <SignupForm />
     </PageLayout>
   )
 }
