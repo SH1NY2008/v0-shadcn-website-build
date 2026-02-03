@@ -77,24 +77,24 @@ export default function QuizCategoryPage() {
     return (
       <PageLayout>
         <div className="max-w-2xl mx-auto py-10">
-          <Card className="text-center p-8 border-4 border-primary/10">
-            <CardHeader>
-                <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4 w-20 h-20 flex items-center justify-center">
-                    <CheckCircle2 className="w-10 h-10 text-primary" />
-                </div>
-                <CardTitle className="text-4xl font-black uppercase mb-2">Quiz Completed!</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="text-center p-8 rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
+            <div className="mx-auto bg-[#FFC971] border-4 border-black/10 p-4 rounded-full mb-6 w-24 h-24 flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                <CheckCircle2 className="w-12 h-12 text-[#2C2C2C]" />
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[#2C2C2C] mb-4">Quiz Completed!</h2>
+            
+            <div className="space-y-8 my-8">
                 <div className="flex flex-col items-center justify-center">
-                    <div className="text-6xl font-black text-primary mb-2">{percentage}%</div>
-                    <p className="text-xl text-muted-foreground">You scored {score} out of {questions.length}</p>
+                    <div className="text-7xl font-black text-[#006B6B] mb-2">{percentage}%</div>
+                    <p className="text-xl font-bold text-[#2C2C2C]/60">You scored {score} out of {questions.length}</p>
                 </div>
                 
-                <div className="w-full bg-secondary h-4 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full transition-all duration-1000 ease-out" style={{ width: `${percentage}%` }} />
+                <div className="w-full bg-black/5 h-6 rounded-full overflow-hidden border-2 border-black/10">
+                    <div className="bg-[#006B6B] h-full transition-all duration-1000 ease-out" style={{ width: `${percentage}%` }} />
                 </div>
-            </CardContent>
-            <CardFooter className="flex justify-center gap-4 mt-6">
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
                 <Button 
                     onClick={() => {
                         setQuizCompleted(false)
@@ -105,18 +105,20 @@ export default function QuizCategoryPage() {
                     }}
                     variant="outline"
                     size="lg"
+                    className="border-4 border-black/10 bg-white hover:bg-black/5 text-[#2C2C2C] font-black h-14 px-8 text-lg"
                 >
-                    <RotateCcw className="mr-2 h-4 w-4" />
+                    <RotateCcw className="mr-2 h-5 w-5" />
                     Retry Quiz
                 </Button>
                 <Button 
                     onClick={() => router.push('/quizzes')}
                     size="lg"
+                    className="border-4 border-black/10 bg-[#FFB627] hover:bg-[#FFC971] text-[#2C2C2C] font-black h-14 px-8 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] transition-all"
                 >
                     Back to Quizzes
                 </Button>
-            </CardFooter>
-          </Card>
+            </div>
+          </div>
         </div>
       </PageLayout>
     )
@@ -128,28 +130,28 @@ export default function QuizCategoryPage() {
     <PageLayout>
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-            <Link href="/quizzes" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
+            <Link href="/quizzes" className="inline-flex items-center text-sm font-bold text-[#2C2C2C]/60 hover:text-[#2C2C2C] transition-colors mb-4 uppercase tracking-wide">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Quizzes
             </Link>
             
-            <div className="flex justify-between items-end mb-2">
-                <h1 className="text-3xl font-bold">{category}</h1>
-                <span className="text-sm font-medium text-muted-foreground">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-4 gap-2">
+                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[#2C2C2C] leading-none">{category}</h1>
+                <span className="text-lg font-bold text-[#2C2C2C]/60 bg-white/50 px-3 py-1 rounded-lg border-2 border-black/5">
                     Question {currentQuestionIndex + 1} of {questions.length}
                 </span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-4 border-2 border-black/10 bg-white [&>div]:bg-[#006B6B]" />
         </div>
 
-        <Card className="mb-8 overflow-hidden border-2">
-            <CardContent className="pt-6">
+        <div className="mb-8 overflow-hidden rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
+            <div className="p-6 md:p-8">
                 {currentQuestion.topic && (
-                    <Badge variant="secondary" className="mb-4 text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/20">
+                    <Badge variant="secondary" className="mb-6 text-sm font-black uppercase tracking-wider bg-[#FFC971] text-[#2C2C2C] border-2 border-black/10 px-3 py-1 hover:bg-[#FFC971]">
                         {currentQuestion.topic}
                     </Badge>
                 )}
-                <div className="text-lg md:text-xl leading-relaxed font-medium mb-8">
+                <div className="text-xl md:text-2xl leading-relaxed font-bold text-[#2C2C2C] mb-8">
                     <MathText content={currentQuestion.content} />
                 </div>
 
@@ -158,18 +160,22 @@ export default function QuizCategoryPage() {
                     const isSelected = selectedAnswer === option.id
                     const isCorrect = option.id === currentQuestion.correctAnswer
                     
-                    let variantClass = "hover:border-primary hover:bg-accent/50 cursor-pointer"
+                    let variantClass = "hover:border-[#006B6B] hover:bg-[#006B6B]/5 cursor-pointer border-black/10 bg-white"
+                    let iconClass = "border-black/10 bg-black/5 text-[#2C2C2C]"
                     
                     if (showResult) {
                         if (isCorrect) {
-                            variantClass = "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 ring-1 ring-green-500"
+                            variantClass = "border-[#006B6B] bg-[#006B6B]/10 ring-2 ring-[#006B6B]"
+                            iconClass = "border-[#006B6B] bg-[#006B6B] text-white"
                         } else if (isSelected && !isCorrect) {
-                            variantClass = "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 ring-1 ring-red-500"
+                            variantClass = "border-red-500 bg-red-50 ring-2 ring-red-500"
+                            iconClass = "border-red-500 bg-red-500 text-white"
                         } else {
-                            variantClass = "opacity-50"
+                            variantClass = "opacity-50 border-black/10 bg-black/5"
                         }
                     } else if (isSelected) {
-                        variantClass = "border-primary bg-primary/5 ring-1 ring-primary"
+                        variantClass = "border-[#006B6B] bg-[#006B6B]/10 ring-2 ring-[#006B6B]"
+                        iconClass = "border-[#006B6B] bg-[#006B6B] text-white"
                     }
 
                     return (
@@ -177,34 +183,32 @@ export default function QuizCategoryPage() {
                             key={option.id}
                             onClick={() => handleSelectAnswer(option.id)}
                             className={cn(
-                                "p-4 border-2 rounded-xl transition-all duration-200 flex items-center relative",
+                                "p-4 md:p-6 border-4 rounded-xl transition-all duration-200 flex items-center relative font-bold text-lg",
                                 variantClass
                             )}
                         >
                             <div className={cn(
-                                "w-8 h-8 rounded-full border-2 flex items-center justify-center mr-4 font-bold text-sm shrink-0",
-                                showResult && isCorrect ? "border-green-500 bg-green-500 text-white" :
-                                showResult && isSelected && !isCorrect ? "border-red-500 bg-red-500 text-white" :
-                                isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30 text-muted-foreground"
+                                "w-10 h-10 rounded-lg border-2 flex items-center justify-center mr-4 font-black text-base shrink-0 transition-colors",
+                                iconClass
                             )}>
                                 {option.id}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 text-[#2C2C2C]">
                                 <MathText content={option.content} />
                             </div>
                             {showResult && isCorrect && (
-                                <CheckCircle2 className="absolute right-4 text-green-500 h-6 w-6" />
+                                <CheckCircle2 className="absolute right-4 text-[#006B6B] h-8 w-8" />
                             )}
                             {showResult && isSelected && !isCorrect && (
-                                <XCircle className="absolute right-4 text-red-500 h-6 w-6" />
+                                <XCircle className="absolute right-4 text-red-500 h-8 w-8" />
                             )}
                         </div>
                     )
                 })}
                 </div>
-            </CardContent>
-            <CardFooter className="bg-muted/30 p-6 flex justify-between items-center border-t">
-                <div className="text-sm text-muted-foreground font-medium">
+            </div>
+            <div className="bg-black/5 p-6 md:p-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-t-4 border-black/10">
+                <div className="text-lg font-black text-[#2C2C2C] uppercase tracking-wide bg-white px-4 py-2 rounded-lg border-2 border-black/10">
                     Score: {score} / {questions.length}
                 </div>
                 {!showResult ? (
@@ -212,7 +216,7 @@ export default function QuizCategoryPage() {
                         onClick={handleSubmit} 
                         disabled={!selectedAnswer}
                         size="lg"
-                        className="w-full md:w-auto min-w-[150px]"
+                        className="w-full sm:w-auto min-w-[200px] border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-black h-14 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
                     >
                         Submit Answer
                     </Button>
@@ -220,23 +224,23 @@ export default function QuizCategoryPage() {
                     <Button 
                         onClick={handleNext} 
                         size="lg"
-                        className="w-full md:w-auto min-w-[150px]"
+                        className="w-full sm:w-auto min-w-[200px] border-4 border-black/10 bg-[#FFB627] hover:bg-[#FFC971] text-[#2C2C2C] font-black h-14 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] transition-all"
                     >
                         {currentQuestionIndex < questions.length - 1 ? (
                             <>
                                 Next Question
-                                <ArrowRight className="ml-2 h-4 w-4" />
+                                <ArrowRight className="ml-2 h-5 w-5" />
                             </>
                         ) : (
                             <>
                                 Finish Quiz
-                                <CheckCircle2 className="ml-2 h-4 w-4" />
+                                <CheckCircle2 className="ml-2 h-5 w-5" />
                             </>
                         )}
                     </Button>
                 )}
-            </CardFooter>
-        </Card>
+            </div>
+        </div>
       </div>
     </PageLayout>
   )

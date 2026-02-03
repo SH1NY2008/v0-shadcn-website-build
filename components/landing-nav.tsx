@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Calculator, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
 import { onAuthStateChanged, type User, signOut } from "firebase/auth"
+import { doc, getDoc } from "firebase/firestore"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,11 +32,31 @@ interface LandingNavProps {
 export function LandingNav({ heroStarted = true }: LandingNavProps) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
     return () => unsub()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      const fetchRole = async () => {
+        try {
+          const docRef = doc(db, "users", user.uid)
+          const docSnap = await getDoc(docRef)
+          if (docSnap.exists()) {
+            setRole(docSnap.data().role)
+          }
+        } catch (error) {
+          console.error("Error fetching user role:", error)
+        }
+      }
+      fetchRole()
+    } else {
+      setRole(null)
+    }
+  }, [user])
 
   return (
     <nav className="w-full px-6 py-6 md:px-12 flex items-center justify-between relative z-50">
@@ -161,6 +182,14 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
               >
                 Resources
               </DropdownMenuItem>
+              {role === "teacher" && (
+                <DropdownMenuItem
+                  className="cursor-pointer font-bold"
+                  onClick={() => router.push("/teacher/progress")}
+                >
+                  Student Progress
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator className="bg-black/10" />
               <DropdownMenuItem
                 className="cursor-pointer font-bold text-destructive focus:text-destructive"

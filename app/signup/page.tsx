@@ -26,6 +26,7 @@ function SignupForm({
   const [error, setError] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [isTeacher, setIsTeacher] = useState(false)
   const router = useRouter()
 
   const handleGoogleSignIn = async () => {

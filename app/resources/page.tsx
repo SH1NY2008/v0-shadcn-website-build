@@ -46,115 +46,127 @@ const OPENSTAX_RESOURCES = [
 export default function ResourcesPage() {
   return (
     <PageLayout>
-      <div className="mb-12 text-center">
-        <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-foreground uppercase">
-          Learning Resources
+      <div className="mb-12">
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
+          Resources
         </h1>
-        <p className="text-xl md:text-2xl font-medium text-muted-foreground">
-          Khan Academy video lessons organized by unit and topic
+        <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
+          Curated learning materials organized by course and unit.
         </p>
       </div>
 
-      <div className="space-y-8">
-        <Accordion type="multiple" className="space-y-6">
-          {curriculum.map((course, index) => (
-            <ScrollReveal key={course.id} delay={index * 0.1} className="w-full">
-              <AccordionItem 
-                value={course.id} 
-                className="border-4 border-border bg-card rounded-2xl shadow-lg px-6 overflow-hidden"
-              >
-                <AccordionTrigger className="hover:no-underline py-6 group">
-                <div className="flex items-center gap-4 text-left w-full">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                    <Calculator className="h-7 w-7" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-black text-foreground tracking-tight">{course.name}</h2>
-                    <p className="text-sm font-bold text-muted-foreground mt-1">
-                      {course.units.length} units • {course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}{" "}
-                      video lessons
-                    </p>
-                  </div>
-                  <div className="ml-auto mr-4">
-                    <CourseProgressBadge
-                      courseId={course.id}
-                      totalTopics={course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}
-                    />
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pb-6">
-                <Accordion type="multiple" className="w-full pt-2 space-y-4">
-                  {course.units.map((unit, unitIdx) => (
-                    <AccordionItem 
-                      key={unitIdx} 
-                      value={`unit-${unitIdx}`} 
-                      className="border-2 border-black/5 bg-white/40 rounded-xl px-4 overflow-hidden"
-                    >
-                      <AccordionTrigger className="text-left hover:no-underline py-4">
-                        <div>
-                          <div className="font-bold text-lg text-black">{unit.name}</div>
-                          <div className="text-sm font-bold text-muted-foreground">{unit.topics.length} topics</div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-3 pt-2 pb-4">
-                          {unit.topics.map((topic, topicIdx) => (
-                            <div
-                              key={topicIdx}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-black/5 bg-white p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-                            >
-                              <div className="flex-1">
-                                <div className="font-bold text-base text-black">{topic.name}</div>
-                                <div className="mt-1 text-xs font-bold text-black/40 uppercase tracking-wide">Khan Academy</div>
+      <div className="space-y-12">
+        <section>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+              <Calculator className="h-6 w-6" />
+            </div>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Khan Academy Courses</h2>
+          </div>
+          
+          <Accordion type="multiple" className="space-y-6">
+            {curriculum.map((course, index) => (
+              <ScrollReveal key={course.id} delay={index * 0.1} className="w-full">
+                <AccordionItem 
+                  value={course.id} 
+                  className="border-4 border-black/10 bg-white rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] overflow-hidden"
+                >
+                  <AccordionTrigger className="hover:no-underline py-6 px-6 group data-[state=open]:bg-black/5">
+                    <div className="flex items-center gap-6 text-left w-full">
+                      <div className="hidden sm:flex h-16 w-16 items-center justify-center rounded-xl border-4 border-black/10 bg-[#006B6B] text-white shrink-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] transition-transform group-hover:scale-105">
+                        <Calculator className="h-8 w-8" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-2xl md:text-3xl font-black text-[#2C2C2C] tracking-tight uppercase">{course.name}</h3>
+                        <p className="text-base font-bold text-[#2C2C2C]/60 mt-1">
+                          {course.units.length} units • {course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}{" "}
+                          video lessons
+                        </p>
+                      </div>
+                      <div className="mr-4">
+                        <CourseProgressBadge
+                          courseId={course.id}
+                          totalTopics={course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}
+                        />
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-0">
+                    <div className="divide-y-4 divide-black/5">
+                      {course.units.map((unit, unitIdx) => (
+                        <Accordion type="single" collapsible key={unitIdx} className="w-full">
+                          <AccordionItem value={`unit-${unitIdx}`} className="border-0">
+                            <AccordionTrigger className="hover:no-underline py-4 px-6 hover:bg-black/5">
+                              <div className="flex items-center gap-4">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFC971] text-sm font-black border-2 border-black/10 text-[#2C2C2C]">
+                                  {unitIdx + 1}
+                                </span>
+                                <div className="text-left">
+                                  <div className="font-bold text-lg text-[#2C2C2C]">{unit.name}</div>
+                                  <div className="text-xs font-bold text-[#2C2C2C]/60 uppercase">{unit.topics.length} topics</div>
+                                </div>
                               </div>
-                              <div className="flex flex-col items-start sm:items-end gap-3 ml-0 sm:ml-4 sm:flex-row sm:items-center">
-                                <Button size="sm" className="gap-2 bg-[#006B6B] hover:bg-[#005555] text-white font-bold rounded-lg" asChild>
-                                  <Link href={`https://www.youtube.com/watch?v=${topic.videoId}`} target="_blank">
-                                    <Play className="h-4 w-4" />
-                                    Watch
-                                  </Link>
-                                </Button>
-                                <TopicProgressButton courseId={course.id} videoId={topic.videoId} />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6 pt-2">
+                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                {unit.topics.map((topic, topicIdx) => (
+                                  <div
+                                    key={topicIdx}
+                                    className="flex flex-col justify-between gap-4 rounded-xl border-4 border-black/10 bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)]"
+                                  >
+                                    <div>
+                                      <div className="font-bold text-base text-[#2C2C2C] leading-tight mb-2">{topic.name}</div>
+                                      <div className="inline-flex items-center rounded-md border-2 border-black/5 bg-black/5 px-2 py-1 text-xs font-bold text-[#2C2C2C]/60 uppercase">Khan Academy</div>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3 mt-2">
+                                      <Button size="sm" className="flex-1 gap-2 border-2 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]" asChild>
+                                        <Link href={`https://www.youtube.com/watch?v=${topic.videoId}`} target="_blank">
+                                          <Play className="h-4 w-4" />
+                                          Watch
+                                        </Link>
+                                      </Button>
+                                      <TopicProgressButton courseId={course.id} videoId={topic.videoId} />
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </AccordionContent>
-            </AccordionItem>
-            </ScrollReveal>
-          ))}
-        </Accordion>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </ScrollReveal>
+            ))}
+          </Accordion>
+        </section>
 
-        <section className="rounded-2xl border-4 border-black/10 bg-[#FFB627] p-8 shadow-xl">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
-              <BookOpen className="h-7 w-7" />
+        <section>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+              <BookOpen className="h-6 w-6" />
             </div>
-            <div>
-              <h2 className="text-3xl font-black text-black tracking-tight">OpenStax Textbooks</h2>
-              <p className="text-lg font-medium text-[#006B6B]">Free downloadable textbooks and resources</p>
-            </div>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">OpenStax Textbooks</h2>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {OPENSTAX_RESOURCES.map((resource, index) => (
               <ScrollReveal key={index} delay={index * 0.1} yOffset={40} scaleOffset={0.04} className="h-full">
-                <div className="flex flex-col justify-between rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md h-full">
-                <div className="mb-6">
-                  <h3 className="font-bold text-lg text-black mb-2">{resource.title}</h3>
-                  <p className="text-sm font-medium text-black/60">{resource.description}</p>
-                </div>
-                <Button asChild variant="outline" className="w-full gap-2 border-black/20 hover:bg-white bg-transparent font-bold text-[#006B6B]">
-                  <Link href={resource.url} target="_blank" rel="noopener noreferrer">
-                    <BookOpen className="h-4 w-4" />
-                    Access Resource
-                  </Link>
-                </Button>
+                <div className="flex flex-col justify-between rounded-xl border-4 border-black/10 bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)] h-full">
+                  <div className="mb-6">
+                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black/10 bg-[#FFB627]/20 text-[#006B6B]">
+                      <BookOpen className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-black text-xl text-[#2C2C2C] uppercase mb-2 leading-tight">{resource.title}</h3>
+                    <p className="text-sm font-bold text-[#2C2C2C]/60">{resource.description}</p>
+                  </div>
+                  <Button asChild className="w-full gap-2 border-4 border-black/10 bg-white hover:bg-black/5 text-[#2C2C2C] font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                    <Link href={resource.url} target="_blank" rel="noopener noreferrer">
+                      Access Resource
+                      <BookOpen className="h-4 w-4 ml-auto" />
+                    </Link>
+                  </Button>
                 </div>
               </ScrollReveal>
             ))}

@@ -1,6 +1,9 @@
-import { LandingNav } from "@/components/landing-nav"
+"use client"
+
 import { ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { Sidebar } from "@/components/sidebar"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 interface PageLayoutProps {
   children: ReactNode
@@ -9,19 +12,15 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className }: PageLayoutProps) {
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 font-sans selection:bg-primary/20 overflow-x-hidden">
-      {/* Floating Card Container */}
-      <div className="relative mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10 flex flex-col">
-        
-        {/* Navigation inside the card */}
-        <div className="absolute top-0 left-0 right-0 z-50">
-           <LandingNav />
-        </div>
-
-        {/* Content */}
-        <div className={cn("w-full flex-1 pt-24 px-6 md:px-12 pb-12", className)}>
-          {children}
-        </div>
+    <div className="min-h-screen bg-[#FFB627]">
+      <Sidebar />
+      <div className="flex min-h-screen flex-col transition-all duration-300 ease-in-out lg:pl-[320px]">
+        <DashboardHeader />
+        <main className={cn("flex-1 px-4 py-8 md:px-8 md:py-12 lg:px-12", className)}>
+          <div className="mx-auto w-full max-w-[1600px]">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )

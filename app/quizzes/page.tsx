@@ -32,41 +32,46 @@ const getCategoryIcon = (category: string) => {
 export default function QuizzesPage() {
   return (
     <PageLayout>
-      <div className="mb-12 text-center">
-        <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
-          Practice Quizzes
+      <div className="mb-12">
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
+          Quizzes
         </h1>
-        <p className="text-xl md:text-2xl font-medium text-muted-foreground">
-          Master mathematics concepts from Algebra to Calculus
+        <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
+          Master mathematics concepts from Algebra to Calculus.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Object.keys(categories).map((category) => (
-          <Card key={category} className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
-            <CardHeader>
-              <div className="flex justify-between items-start mb-2">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+        {Object.keys(categories).map((category, index) => (
+          <div 
+            key={category} 
+            className="group flex flex-col justify-between rounded-xl border-4 border-black/10 bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)]"
+          >
+            <div>
+              <div className="mb-6 flex items-start justify-between">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C] transition-transform group-hover:scale-110 group-hover:rotate-3">
                   {getCategoryIcon(category)}
                 </div>
-                <Badge variant="secondary" className="text-xs">
-                  {categories[category].length} Questions
-                </Badge>
+                <span className="rounded-lg border-2 border-black/10 bg-black/5 px-3 py-1 text-sm font-black text-[#2C2C2C]">
+                  {categories[category].length} Qs
+                </span>
               </div>
-              <CardTitle className="text-xl font-bold line-clamp-2">{category}</CardTitle>
-              <CardDescription className="line-clamp-2">
+              <h3 className="mb-3 text-2xl font-black uppercase leading-[0.9] text-[#2C2C2C]">
+                {category}
+              </h3>
+              <p className="text-sm font-bold text-[#2C2C2C]/60 leading-tight">
                 Practice problems focusing on {category.toLowerCase()} concepts and applications.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter>
-              <Link href={`/quizzes/${encodeURIComponent(category)}`} className="w-full">
-                <Button className="w-full group-hover:bg-primary/90" size="lg">
+              </p>
+            </div>
+            <div className="mt-8">
+              <Link href={`/quizzes/${encodeURIComponent(category)}`} className="w-full block">
+                <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
                   Start Quiz
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
-            </CardFooter>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </PageLayout>
