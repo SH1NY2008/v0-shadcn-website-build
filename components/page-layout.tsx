@@ -2,7 +2,6 @@
 
 import { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 
 interface PageLayoutProps {
@@ -13,8 +12,7 @@ interface PageLayoutProps {
 export function PageLayout({ children, className }: PageLayoutProps) {
   return (
     <div className="min-h-screen bg-[#FFB627]">
-      <Sidebar />
-      <div className="flex min-h-screen flex-col transition-all duration-300 ease-in-out lg:pl-[320px]">
+      <div className="flex min-h-screen flex-col transition-all duration-300 ease-in-out">
         <DashboardHeader />
         <main className={cn("flex-1 px-4 py-8 md:px-8 md:py-12 lg:px-12", className)}>
           <div className="mx-auto w-full max-w-[1600px]">

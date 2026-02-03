@@ -131,9 +131,14 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
         </Link>
       </motion.div>
 
-      {/* Center Logo */}
-      <div className="flex-shrink-0 flex items-center justify-center">
-        <Link href="/" className="flex items-center gap-2 group">
+      {/* Right Group */}
+      <motion.div 
+        className="flex items-center justify-end gap-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: heroStarted ? 1 : 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <Link href="/" className="flex items-center gap-2 group order-first md:order-none">
           {heroStarted && (
             <motion.span 
               className="text-4xl font-black tracking-tighter"
@@ -144,15 +149,7 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
             </motion.span>
           )}
         </Link>
-      </div>
 
-      {/* Right Group */}
-      <motion.div 
-        className="flex-1 flex items-center justify-end gap-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: heroStarted ? 1 : 0 }}
-        transition={{ duration: 0.6 }}
-      >
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -198,7 +195,9 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
                   router.push("/")
                 }}
               >
-                Sign out
+                <div className="flex items-center gap-2">
+                   <span>Sign Out</span>
+                </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
