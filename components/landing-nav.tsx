@@ -53,48 +53,33 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] border-r-4 border-black bg-[#FFB627]">
+          <SheetContent side="left" className="w-[300px] border-r-4 border-foreground bg-background">
             <SheetHeader>
               <SheetTitle className="text-left flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <Calculator className="h-5 w-5" />
-                </div>
-                <span className="text-xl font-black tracking-tighter text-black">Numeria</span>
+                <span className="text-xl font-black tracking-tighter text-foreground">Numeria</span>
               </SheetTitle>
             </SheetHeader>
             <div className="flex flex-col gap-6 mt-8">
               <Link 
                 href="/dashboard" 
-                className="text-2xl font-bold text-black hover:text-primary transition-colors"
+                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
                 onClick={() => document.body.click()} // Close sheet hack or use controlled state
               >
                 Dashboard
               </Link>
               <Link 
                 href="/schedule" 
-                className="text-2xl font-bold text-black hover:text-primary transition-colors"
+                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
               >
                 Schedule
               </Link>
               <Link 
                 href="/resources" 
-                className="text-2xl font-bold text-black hover:text-primary transition-colors"
+                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
               >
                 Resources
               </Link>
-              {!user && (
-                <div className="pt-4 border-t-2 border-black/10 flex flex-col gap-4">
-                  <Link 
-                    href="/google-signin" 
-                    className="text-2xl font-bold text-black hover:text-primary transition-colors"
-                  >
-                    Log in
-                  </Link>
-                  <Button asChild size="lg" className="w-full rounded-xl font-bold bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <Link href="/google-signin">Get Started</Link>
-                  </Button>
-                </div>
-              )}
+              {!user && null}
             </div>
           </SheetContent>
         </Sheet>
@@ -122,15 +107,6 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
       {/* Center Logo */}
       <div className="flex-shrink-0 flex items-center justify-center">
         <Link href="/" className="flex items-center gap-2 group">
-          <motion.div 
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:-translate-y-1 group-hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: heroStarted ? 1 : 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <Calculator className="h-6 w-6" />
-          </motion.div>
-          
           {heroStarted && (
             <motion.span 
               className="text-4xl font-black tracking-tighter"
@@ -191,19 +167,7 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : (
-          <>
-            <Link 
-              href="/google-signin" 
-              className="hidden sm:inline-block text-lg font-bold hover:text-primary transition-colors"
-            >
-              Log in
-            </Link>
-            <Button asChild size="lg" className="rounded-full font-bold bg-primary text-primary-foreground border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <Link href="/google-signin">Get Started</Link>
-            </Button>
-          </>
-        )}
+        ) : null}
       </motion.div>
     </nav>
   )

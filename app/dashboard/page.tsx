@@ -93,7 +93,7 @@ export default function DashboardPage() {
         <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
           Welcome back, {name}
         </h1>
-        <p className="text-xl md:text-2xl font-medium text-[#006B6B]">
+        <p className="text-xl md:text-2xl font-medium text-muted-foreground">
           Track your progress in high school mathematics
         </p>
       </div>

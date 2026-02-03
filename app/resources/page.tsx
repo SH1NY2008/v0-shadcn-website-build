@@ -47,10 +47,10 @@ export default function ResourcesPage() {
   return (
     <PageLayout>
       <div className="mb-12 text-center">
-        <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
+        <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-foreground uppercase">
           Learning Resources
         </h1>
-        <p className="text-xl md:text-2xl font-medium text-[#006B6B]">
+        <p className="text-xl md:text-2xl font-medium text-muted-foreground">
           Khan Academy video lessons organized by unit and topic
         </p>
       </div>
@@ -61,16 +61,16 @@ export default function ResourcesPage() {
             <ScrollReveal key={course.id} delay={index * 0.1} className="w-full">
               <AccordionItem 
                 value={course.id} 
-                className="border-4 border-black/10 bg-[#FFB627] rounded-2xl shadow-lg px-6 overflow-hidden"
+                className="border-4 border-border bg-card rounded-2xl shadow-lg px-6 overflow-hidden"
               >
                 <AccordionTrigger className="hover:no-underline py-6 group">
                 <div className="flex items-center gap-4 text-left w-full">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#006B6B] text-white shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                     <Calculator className="h-7 w-7" />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-black text-black tracking-tight">{course.name}</h2>
-                    <p className="text-sm font-bold text-black/60 mt-1">
+                    <h2 className="text-2xl font-black text-foreground tracking-tight">{course.name}</h2>
+                    <p className="text-sm font-bold text-muted-foreground mt-1">
                       {course.units.length} units • {course.units.reduce((acc, unit) => acc + unit.topics.length, 0)}{" "}
                       video lessons
                     </p>
@@ -94,7 +94,7 @@ export default function ResourcesPage() {
                       <AccordionTrigger className="text-left hover:no-underline py-4">
                         <div>
                           <div className="font-bold text-lg text-black">{unit.name}</div>
-                          <div className="text-sm font-bold text-[#006B6B]">{unit.topics.length} topics</div>
+                          <div className="text-sm font-bold text-muted-foreground">{unit.topics.length} topics</div>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>

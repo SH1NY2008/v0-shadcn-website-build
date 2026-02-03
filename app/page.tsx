@@ -62,7 +62,7 @@ export default function LandingPage() {
         />
       )}
 
-      {/* Floating Card Container */}
+      {/* Hero Card Container */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ 
@@ -70,7 +70,7 @@ export default function LandingPage() {
             scale: heroStarted ? 1 : 0.96 
         }}
         transition={{ duration: 0.6, ease: "easeInOut" }}
-        className="relative mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10"
+        className="relative mx-auto min-h-[90vh] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10 mb-8"
       >
         
         {/* Navigation inside the card */}
@@ -81,24 +81,8 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center px-6 py-24 md:py-32">
           
-          {/* Decorative Math Symbols */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.6, delay: 3.1, ease: "easeOut" }}
-            className="absolute left-10 bottom-10 md:left-12 md:bottom-12 pointer-events-none hidden md:block"
-          >
-            <DivideSign className="w-32 h-32 md:w-44 md:h-44 text-[#008B8B]" />
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.6, delay: 3.1, ease: "easeOut" }}
-            className="absolute right-10 bottom-10 md:right-12 md:bottom-12 pointer-events-none hidden md:block"
-          >
-            <MultiplySign className="w-32 h-32 md:w-44 md:h-44 text-[#008B8B]" />
-          </motion.div>
-
+          {/* Decorative Math Symbols Removed */}
+          
           <div className="text-center max-w-5xl mx-auto z-10 space-y-8">
             <motion.p 
               initial={{ opacity: 0 }}
@@ -121,16 +105,8 @@ export default function LandingPage() {
                 <span className="relative text-primary-foreground">WITH CONFIDENCE</span>
               </span>
             </motion.h1>
-            
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.4, delay: 1.8, ease: "easeOut" }}
-              className="text-xl md:text-3xl font-medium text-muted-foreground max-w-3xl mx-auto mt-8 leading-relaxed"
-            >
-              Numeria helps you master high school math. We guide you to autonomy with tips, lessons, and tracking.
-            </motion.p>
-            
+    
+
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={heroStarted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
@@ -146,7 +122,10 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+      </motion.div>
 
+      {/* Content Below Hero */}
+      <div className="relative mx-auto w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden">
         {/* Value Proposition */}
         <section className="w-full px-6 py-24 md:py-32 bg-black/5">
           <div className="max-w-[1200px] mx-auto">
@@ -272,7 +251,7 @@ export default function LandingPage() {
           </div>
         </footer>
 
-      </motion.div>
+      </div>
     </div>
   )
 }

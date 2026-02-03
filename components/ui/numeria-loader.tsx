@@ -126,7 +126,7 @@ export function NumeriaLoader({ onFadeOutStart, onComplete }: NumeriaLoaderProps
           <div className="relative z-10 flex">
             {showMergedText ? (
                 <motion.span 
-                    className="text-6xl md:text-8xl font-black tracking-widest text-[#2C2C2C]"
+                    className="text-6xl md:text-8xl font-black tracking-widest text-foreground"
                     layoutId="numeria-logo-text"
                     transition={{ duration: 0.6, ease: "easeInOut" }}
                 >

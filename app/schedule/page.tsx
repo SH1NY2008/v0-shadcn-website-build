@@ -207,10 +207,10 @@ export default function SchedulePage() {
     <PageLayout>
       <div className="mb-12 flex flex-col md:flex-row items-end justify-between gap-6">
         <div>
-          <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-black uppercase">
+          <h1 className="mb-4 text-5xl md:text-7xl font-black tracking-tight text-foreground uppercase">
             Math Study Schedule
           </h1>
-          <p className="text-xl md:text-2xl font-medium text-[#006B6B]">
+          <p className="text-xl md:text-2xl font-medium text-muted-foreground">
             Plan your math learning sessions
           </p>
         </div>
@@ -223,7 +223,7 @@ export default function SchedulePage() {
           />
         ) : (
           <Button 
-            className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] shadow-md px-8"
+            className="bg-primary text-primary-foreground font-bold text-lg h-12 rounded-xl hover:bg-primary/90 shadow-md px-8"
             onClick={() => router.push("/google-signin")}
           >
             Sign in to create session
@@ -232,9 +232,9 @@ export default function SchedulePage() {
       </div>
 
       {loading ? (
-        <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
+        <Card className="bg-card border-4 border-border shadow-xl rounded-2xl overflow-hidden">
           <CardContent className="flex h-96 items-center justify-center">
-            <p className="text-black/60 font-bold text-lg animate-pulse">Loading sessions...</p>
+            <p className="text-muted-foreground font-bold text-lg animate-pulse">Loading sessions...</p>
           </CardContent>
         </Card>
       ) : sessions.length === 0 ? (
@@ -244,16 +244,16 @@ export default function SchedulePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center"
+              className="h-20 w-20 rounded-full bg-secondary/20 flex items-center justify-center"
             >
-              <Calendar className="h-10 w-10 text-[#006B6B]" />
+              <Calendar className="h-10 w-10 text-primary" />
             </motion.div>
             <div className="text-center">
               <motion.h3 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-                className="text-2xl font-black text-black mb-2"
+                className="text-2xl font-black text-foreground mb-2"
               >
                 No sessions scheduled
               </motion.h3>
@@ -261,7 +261,7 @@ export default function SchedulePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-                className="text-lg font-medium text-[#006B6B]"
+                className="text-lg font-medium text-muted-foreground"
               >
                 Create your first study session to get started
               </motion.p>
@@ -278,13 +278,13 @@ export default function SchedulePage() {
             return (
               <ScrollReveal key={date} delay={dateIndex * 0.1} yOffset={40} scaleOffset={0.04} className="w-full">
                 <Card className="bg-[#FFB627] border-4 border-black/10 shadow-xl rounded-2xl overflow-hidden">
-                  <CardHeader className="border-b-2 border-black/5 pb-4 bg-black/5">
+                  <CardHeader className="border-b-2 border-border pb-4 bg-secondary/5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-2xl font-black text-black">{formatDate(date)}</CardTitle>
-                        <CardDescription className="text-[#006B6B] font-bold">{dateSessions.length} session(s) scheduled</CardDescription>
+                        <CardTitle className="text-2xl font-black text-foreground">{formatDate(date)}</CardTitle>
+                        <CardDescription className="text-muted-foreground font-bold">{dateSessions.length} session(s) scheduled</CardDescription>
                       </div>
-                      {isToday && <Badge className="bg-[#006B6B] text-white border-none text-sm px-3 py-1 rounded-full">Today</Badge>}
+                      {isToday && <Badge className="bg-primary text-primary-foreground border-none text-sm px-3 py-1 rounded-full">Today</Badge>}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6 p-6">
@@ -295,8 +295,8 @@ export default function SchedulePage() {
 
                       return (
                         <ScrollReveal key={session.id} delay={sessionIndex * 0.1} yOffset={20}>
-                          <div className="flex flex-col md:flex-row gap-4 rounded-xl border-2 border-black/5 bg-white/40 p-6 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-lg duration-300">
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#006B6B] text-white shadow-sm">
+                          <div className="flex flex-col md:flex-row gap-4 rounded-xl border-2 border-border bg-card p-6 transition-all hover:bg-secondary/80 hover:-translate-y-1 hover:shadow-lg duration-300">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
                               {session.isPublic ? (
                                 <Globe className="h-8 w-8" />
                               ) : (
@@ -306,10 +306,10 @@ export default function SchedulePage() {
                             <div className="flex-1 space-y-3">
                               <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
                                 <div>
-                                  <h4 className="font-black text-xl text-black">{session.title}</h4>
-                                  <p className="text-base font-medium text-black/70 mt-1">{session.description}</p>
+                                  <h4 className="font-black text-xl text-foreground">{session.title}</h4>
+                                  <p className="text-base font-medium text-muted-foreground mt-1">{session.description}</p>
                                   {course && (
-                                    <p className="text-sm font-bold text-[#006B6B] mt-2 bg-white/50 inline-block px-2 py-1 rounded-md">
+                                    <p className="text-sm font-bold text-muted-foreground mt-2 bg-secondary/50 inline-block px-2 py-1 rounded-md">
                                       Course: {course.name}
                                     </p>
                                   )}
@@ -318,27 +318,27 @@ export default function SchedulePage() {
                                   <Badge variant={session.isPublic ? "default" : "secondary"} className="h-fit">
                                     {session.isPublic ? "Public" : "Private"}
                                   </Badge>
-                                  {isCreator && <Badge variant="outline" className="h-fit border-black/20">Creator</Badge>}
+                                  {isCreator && <Badge variant="outline" className="h-fit border-border">Creator</Badge>}
                                 </div>
                               </div>
-                          <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-black/60">
+                          <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-muted-foreground">
                             <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-[#006B6B]" />
+                              <Clock className="h-4 w-4 text-primary" />
                               {formatTime(session.startTime)} - {formatTime(session.endTime)}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-[#006B6B]" />
+                              <Users className="h-4 w-4 text-primary" />
                               {session.participants.length} participant(s)
                             </div>
                             <div className="flex items-center gap-2">
-                              <BookOpen className="h-4 w-4 text-[#006B6B]" />
+                              <BookOpen className="h-4 w-4 text-primary" />
                               by {isCreator ? "You" : session.creatorName}
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-3 pt-2">
                             {isCreator ? (
                               <>
-                                <Button size="sm" variant="outline" className="gap-2 bg-transparent border-black/20 hover:bg-white/50" asChild>
+                                <Button size="sm" variant="outline" className="gap-2 bg-transparent border-border hover:bg-secondary/50" asChild>
                                   <a
                                     href={generateGoogleCalendarLink(
                                       session.title,
@@ -363,7 +363,7 @@ export default function SchedulePage() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  className="gap-2 bg-red-500 hover:bg-red-600 text-white"
+                                  className="gap-2"
                                   onClick={() => handleDeleteSession(session.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -411,7 +411,7 @@ export default function SchedulePage() {
                                       Join Session
                                     </Button>
                                   ) : (
-                                    <Button size="sm" className="bg-[#006B6B] text-white hover:bg-[#005555]" onClick={() => router.push("/google-signin")}>
+                                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => router.push("/google-signin")}>
                                       Sign in to join
                                     </Button>
                                   )
