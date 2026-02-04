@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
@@ -8,10 +8,24 @@ import "./globals.css"
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#000000",
+}
+
 export const metadata: Metadata = {
   title: "Numeria.inc",
   description: "Track progress, schedule sessions, and access learning resources",
   generator: "v0.app",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Numeria.inc",
+  },
   icons: {
     icon: [
       {

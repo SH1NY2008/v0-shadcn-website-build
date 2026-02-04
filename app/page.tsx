@@ -70,7 +70,7 @@ export default function LandingPage() {
             scale: heroStarted ? 1 : 0.96 
         }}
         transition={{ duration: 0.6, ease: "easeInOut" }}
-        className="relative mx-auto min-h-[90vh] w-full max-w-[1600px] rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10 mb-8"
+        className="relative mx-auto min-h-[90vh] w-full max-w-[1600px] rounded-2xl md:rounded-[2rem] bg-card text-card-foreground shadow-2xl overflow-hidden border-4 border-black/10 mb-8"
       >
         
         {/* Navigation inside the card */}
@@ -79,16 +79,16 @@ export default function LandingPage() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center px-6 py-24 md:py-32">
+        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center px-4 md:px-6 py-24 md:py-32">
           
           {/* Decorative Math Symbols Removed */}
           
-          <div className="text-center max-w-5xl mx-auto z-10 space-y-8">
+          <div className="text-center max-w-5xl mx-auto z-10 space-y-6 md:space-y-8">
             <motion.p 
               initial={{ opacity: 0 }}
               animate={heroStarted ? { opacity: 1 } : { opacity: 0 }}
               transition={{ duration: 0.4, delay: 0.8, ease: "easeOut" }}
-              className="text-xl md:text-2xl font-bold tracking-wide text-primary uppercase mb-4"
+              className="text-lg md:text-2xl font-bold tracking-wide text-primary uppercase mb-2 md:mb-4"
             >
               Math without the headaches
             </motion.p>
@@ -97,7 +97,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={heroStarted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.5, delay: 1.2, ease: "easeOut" }}
-              className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-card-foreground"
+              className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-card-foreground"
             >
               START LEARNING <br/>
               <span className="relative inline-block px-4">

@@ -111,12 +111,12 @@ export default function DashboardPage() {
 
   return (
     <PageLayout>
-      <div className="mb-8 flex flex-col justify-end min-h-[40vh] pb-8 border-b-4 border-black/10">
-        <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
+      <div className="mb-8 flex flex-col justify-end min-h-[30vh] md:min-h-[40vh] pb-8 border-b-4 border-black/10">
+        <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
           Welcome back,<br />
           <span className="text-[#006B6B]">{name}</span>
         </h1>
-        <p className="text-2xl md:text-3xl font-bold text-[#2C2C2C]/60 max-w-2xl leading-tight">
+        <p className="text-xl md:text-3xl font-bold text-[#2C2C2C]/60 max-w-2xl leading-tight">
           Track your progress in high school mathematics
         </p>
       </div>

@@ -75,7 +75,7 @@ function SignupForm({
                   id="email"
                   type="email"
                   required
-                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B]"
+                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] text-base"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -86,7 +86,7 @@ function SignupForm({
                   id="password" 
                   type="password" 
                   required 
-                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B]"
+                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] text-base"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />

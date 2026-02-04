@@ -21,7 +21,7 @@ const LetterScrambler = ({
   targetChar: string
   index: number 
 }) => {
-  const [displayChar, setDisplayChar] = useState(CHARS[Math.floor(Math.random() * CHARS.length)])
+  const [displayChar, setDisplayChar] = useState(CHARS[(index * 3) % CHARS.length])
   const [isLocked, setIsLocked] = useState(false)
   const [jitter, setJitter] = useState({ x: 0 })
   
