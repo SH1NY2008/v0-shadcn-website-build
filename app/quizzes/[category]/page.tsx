@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useQuizSound } from "@/hooks/use-quiz-sound"
+import { useQuizHaptics } from "@/hooks/use-quiz-haptics"
 
 export default function QuizCategoryPage() {
   const params = useParams()
@@ -29,6 +30,7 @@ export default function QuizCategoryPage() {
   const [quizCompleted, setQuizCompleted] = useState(false)
 
   const { playCorrect, playIncorrect, playComplete } = useQuizSound()
+  const { hapticSuccess, hapticError, hapticImpact } = useQuizHaptics()
 
   useEffect(() => {
     if (category) {
@@ -40,6 +42,7 @@ export default function QuizCategoryPage() {
   const handleSelectAnswer = (value: string) => {
     if (showResult) return
     setSelectedAnswer(value)
+    hapticImpact()
   }
 
   const handleSubmit = () => {
@@ -49,8 +52,10 @@ export default function QuizCategoryPage() {
     if (isCorrect) {
       setScore(score + 1)
       playCorrect()
+      hapticSuccess()
     } else {
       playIncorrect()
+      hapticError()
     }
     
     setShowResult(true)
@@ -64,6 +69,7 @@ export default function QuizCategoryPage() {
     } else {
       setQuizCompleted(true)
       playComplete()
+      hapticSuccess()
     }
   }
 
