@@ -363,6 +363,98 @@ const additionalQuestions = [
             { id: "D", content: "0" }
         ],
         correctAnswer: "A"
+    },
+    // --- AP Calculus BC Exam 2025 ---
+    {
+        id: "apcalcbc_2025_q2a",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Polar Coordinates",
+        content: "<p><strong>Question 2A</strong><br>Curve \\( C \\) is defined by the polar equation \\( r(\\theta) = 2 \\sin^2 \\theta \\) for \\( 0 \\le \\theta \\le \\pi \\). Curve \\( C \\) and the semicircle \\( r = \\frac{1}{2} \\) for \\( 0 \\le \\theta \\le \\pi \\) are shown in the \\( xy \\)-plane.<br><br>Find the rate of change of \\( r \\) with respect to \\( \\theta \\) at the point on curve \\( C \\) where \\( \\theta = 1.3 \\).</p>",
+        options: [
+            { id: "A", content: "1.031" },
+            { id: "B", content: "0.516" },
+            { id: "C", content: "2.062" },
+            { id: "D", content: "-1.031" }
+        ],
+        correctAnswer: "A"
+    },
+    {
+        id: "apcalcbc_2025_q2b",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Polar Coordinates",
+        content: "<p><strong>Question 2B</strong><br>Find the area of the region that lies inside curve \\( C \\) (\\( r = 2 \\sin^2 \\theta \\)) but outside the graph of the polar equation \\( r = \\frac{1}{2} \\).</p>",
+        options: [
+            { id: "A", content: "2.067" },
+            { id: "B", content: "1.571" },
+            { id: "C", content: "3.142" },
+            { id: "D", content: "0.785" }
+        ],
+        correctAnswer: "A"
+    },
+    {
+        id: "apcalcbc_2025_q2c",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Polar Coordinates",
+        content: "<p><strong>Question 2C</strong><br>It can be shown that \\( \\frac{dx}{d\\theta} = 4 \\sin \\theta \\cos^2 \\theta - 2 \\sin^3 \\theta \\) for curve \\( C \\). For \\( 0 \\le \\theta \\le \\frac{\\pi}{2} \\), find the value of \\( \\theta \\) that corresponds to the point on curve \\( C \\) that is farthest from the \\( y \\)-axis.</p>",
+        options: [
+            { id: "A", content: "\\( \\tan^{-1}(\\sqrt{2}) \\)" },
+            { id: "B", content: "\\( \\frac{\\pi}{4} \\)" },
+            { id: "C", content: "\\( \\frac{\\pi}{3} \\)" },
+            { id: "D", content: "\\( \\frac{\\pi}{6} \\)" }
+        ],
+        correctAnswer: "A"
+    },
+    {
+        id: "apcalcbc_2025_q2d",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Polar Coordinates",
+        content: "<p><strong>Question 2D</strong><br>A particle travels along curve \\( C \\) so that \\( \\frac{d\\theta}{dt} = 15 \\) for all times \\( t \\). Find the rate at which the particle's distance from the origin changes with respect to time when the particle is at the point where \\( \\theta = 1.3 \\).</p>",
+        options: [
+            { id: "A", content: "15.465" },
+            { id: "B", content: "1.031" },
+            { id: "C", content: "30.930" },
+            { id: "D", content: "7.732" }
+        ],
+        correctAnswer: "A"
+    },
+    {
+        id: "apcalcbc_2025_001",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Fundamental Theorem of Calculus",
+        content: "<p>Let \\( g(x) = \\int_{-6}^x f(t) dt \\). The graph of \\( f \\) consists of two semicircles and a line segment. Given that \\( f(8) = 1 \\), find \\( g'(8) \\).</p>",
+        options: [
+            { id: "A", content: "1" },
+            { id: "B", content: "0" },
+            { id: "C", content: "8" },
+            { id: "D", content: "-1" }
+        ],
+        correctAnswer: "A"
+    },
+    {
+        id: "apcalcbc_2025_002",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Taylor Series",
+        content: "<p>The Maclaurin series for a function \\( f \\) is given by \\( f(x) = \\sum_{n=0}^{\\infty} \\frac{(-1)^n x^{2n+1}}{2n+1} \\). What is the coefficient of the \\( x^5 \\) term?</p>",
+        options: [
+            { id: "A", content: "\\(\\frac{1}{5}\\)" },
+            { id: "B", content: "\\(\\frac{1}{120}\\)" },
+            { id: "C", content: "\\(-\\frac{1}{120}\\)" },
+            { id: "D", content: "\\(-\\frac{1}{5}\\)" }
+        ],
+        correctAnswer: "A"
+    },
+    {
+        id: "apcalcbc_2025_003",
+        category: "AP Calculus BC Exam 2025",
+        topic: "Polar Coordinates",
+        content: "<p>Find the area of the region inside the polar curve \\( r = 3 \\sin(\\theta) \\).</p>",
+        options: [
+            { id: "A", content: "\\(\\frac{9\\pi}{4}\\)" },
+            { id: "B", content: "\\(9\\pi\\)" },
+            { id: "C", content: "\\(\\frac{9\\pi}{2}\\)" },
+            { id: "D", content: "\\(\\frac{3\\pi}{2}\\)" }
+        ],
+        correctAnswer: "A"
     }
 ];
 

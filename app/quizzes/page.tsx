@@ -52,9 +52,9 @@ export default function QuizzesPage() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C] transition-transform group-hover:scale-110 group-hover:rotate-3">
                   {getCategoryIcon(category)}
                 </div>
-                <span className="rounded-lg border-2 border-black/10 bg-black/5 px-3 py-1 text-sm font-black text-[#2C2C2C]">
+                <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
                   {categories[category].length} Qs
-                </span>
+                </Badge>
               </div>
               <h3 className="mb-3 text-2xl font-black uppercase leading-[0.9] text-[#2C2C2C]">
                 {category}

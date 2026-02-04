@@ -111,16 +111,24 @@ export default function CallPage() {
           </div>
         </div>
         <Dialog open={showPrompt} onOpenChange={setShowPrompt}>
-          <DialogContent className="sm:max-w-md border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-black">Enable Mic & Camera</DialogTitle>
-              <DialogDescription className="font-medium text-muted-foreground">Grant access to your microphone and camera to join the call.</DialogDescription>
+          <DialogContent className="sm:max-w-md border-4 border-black/10 bg-[#FFB627] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] rounded-3xl">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Enable Mic & Camera</DialogTitle>
+              <DialogDescription className="text-[#006B6B] font-bold text-lg mt-1">Grant access to your microphone and camera to join the call.</DialogDescription>
             </DialogHeader>
-            <div className="flex gap-2">
-              <Button onClick={requestPermissions} disabled={requesting} className="flex-1 bg-[#006B6B] hover:bg-[#005050] text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
+            <div className="flex gap-4">
+              <Button 
+                onClick={requestPermissions} 
+                disabled={requesting} 
+                className="flex-1 bg-[#006B6B] text-white font-black text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] uppercase tracking-wide"
+              >
                 {requesting ? "Requesting..." : "Enable"}
               </Button>
-              <Button asChild variant="outline" className="flex-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
+              <Button 
+                asChild 
+                variant="outline" 
+                className="flex-1 bg-transparent border-4 border-black/10 text-[#2C2C2C] font-black text-lg h-14 rounded-xl hover:bg-black/5 uppercase tracking-wide"
+              >
                 <a href={roomUrl} target="_blank" rel="noopener noreferrer">Open in Jitsi</a>
               </Button>
             </div>

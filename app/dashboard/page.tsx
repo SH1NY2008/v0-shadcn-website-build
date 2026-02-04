@@ -182,101 +182,44 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Study Goals */}
+        {/* Practice Center */}
         <div className="rounded-3xl border-4 border-black/10 bg-[#FFC971] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
           <div className="mb-8 border-b-4 border-black/10 pb-6">
-            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Weekly Goals</h2>
-            <p className="text-[#006B6B] font-bold text-lg mt-1">Your learning targets for this week</p>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Practice Center</h2>
+            <p className="text-[#006B6B] font-bold text-lg mt-1">Test your knowledge with quick quizzes</p>
           </div>
           <div className="space-y-6">
-            <ScrollReveal delay={0.1} yOffset={40} scaleOffset={0.04}>
-              <div className="flex items-center gap-6 rounded-2xl border-2 border-black/5 bg-black/5 p-6 transition-all hover:bg-black/10 hover:shadow-md">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#006B6B] text-white shadow-sm">
-                  <Target className="h-8 w-8" />
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-black text-xl text-[#2C2C2C]">Complete 5 Lessons</h4>
-                    <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-3 py-1 rounded-lg">{weeklyCompleted}/5</span>
-                  </div>
-                  <div className="h-4 w-full bg-black/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#006B6B]" 
-                      style={{ width: `${weeklyLessonsPercent}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={0.2}>
-              <div className="flex items-center gap-6 rounded-2xl border-2 border-black/5 bg-black/5 p-6 transition-all hover:bg-black/10 hover:shadow-md">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#006B6B] text-white shadow-sm">
-                  <Calendar className="h-8 w-8" />
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-black text-xl text-[#2C2C2C]">Study 10 Hours</h4>
-                    <span className="text-sm font-bold text-[#006B6B] bg-white/50 px-3 py-1 rounded-lg">{weeklyStudyHours}/10</span>
-                  </div>
-                  <div className="h-4 w-full bg-black/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#006B6B]" 
-                      style={{ width: `${weeklyHoursPercent}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </ScrollReveal>
-          </div>
-        </div>
-
-        {/* Practice Center */}
-        <div className="col-span-1 lg:col-span-2 rounded-3xl border-4 border-black/10 bg-[#FFC971] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
-          <div className="mb-8 border-b-4 border-black/10 pb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Practice Center</h2>
-              <p className="text-[#006B6B] font-bold text-lg mt-1">Test your knowledge with quick quizzes</p>
-            </div>
-            <Button variant="outline" className="hidden sm:flex border-2 border-black/10 bg-white/50 hover:bg-white text-[#2C2C2C] font-bold rounded-xl px-6 h-12" asChild>
-              <Link href="/quizzes">View All Quizzes</Link>
-            </Button>
-          </div>
-          <div className="pt-2">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               {Object.keys(quizCategories).slice(0, 4).map((category, i) => (
-                <ScrollReveal key={category} delay={0.3 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
+                <ScrollReveal key={category} delay={0.1 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
                   <Link href={`/quizzes/${encodeURIComponent(category)}`} className="block group h-full">
-                    <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
+                    <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <div className="p-2 bg-[#006B6B]/10 rounded-xl text-[#006B6B] group-hover:bg-[#006B6B] group-hover:text-white transition-colors">
                             {getCategoryIcon(category)}
                           </div>
-                          <Badge variant="secondary" className="text-xs bg-white/50 font-bold">
+                          <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
                             {quizCategories[category].length} Qs
                           </Badge>
                         </div>
-                        <h4 className="font-bold text-lg text-[#2C2C2C] mb-1 line-clamp-1 leading-tight">{category}</h4>
-                        <p className="text-sm font-bold text-[#2C2C2C]/60 mb-4 line-clamp-2 leading-snug">
-                          Practice {category.toLowerCase()} problems
-                        </p>
+                        <h4 className="font-bold text-base text-[#2C2C2C] mb-1 line-clamp-1 leading-tight">{category}</h4>
                       </div>
-                      <div className="flex items-center text-[#006B6B] font-black text-sm group-hover:translate-x-1 transition-transform uppercase tracking-wide">
-                        Start Quiz <ArrowRight className="ml-1 h-4 w-4" />
+                      <div className="flex items-center text-[#006B6B] font-black text-xs group-hover:translate-x-1 transition-transform uppercase tracking-wide">
+                        Start <ArrowRight className="ml-1 h-3 w-3" />
                       </div>
                     </div>
                   </Link>
                 </ScrollReveal>
               ))}
             </div>
-            <div className="mt-6 sm:hidden">
-              <Button className="w-full bg-[#006B6B] text-white font-bold h-12 rounded-xl" asChild>
-                <Link href="/quizzes">View All Quizzes</Link>
-              </Button>
-            </div>
+            
+            <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
+              <Link href="/quizzes">View All Quizzes</Link>
+            </Button>
           </div>
         </div>
+
       </div>
     </PageLayout>
   )

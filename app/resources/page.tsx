@@ -9,6 +9,8 @@ import Link from "next/link"
 import { CourseProgressBadge } from "@/components/course-progress-badge"
 import { TopicProgressButton } from "@/components/topic-progress-button"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { useState } from "react"
+import { VideoPlayerDialog } from "@/components/video-player-dialog"
 
 const OPENSTAX_RESOURCES = [
   {
@@ -44,6 +46,8 @@ const OPENSTAX_RESOURCES = [
 ]
 
 export default function ResourcesPage() {
+  const [selectedVideo, setSelectedVideo] = useState<{ id: string, title: string } | null>(null)
+
   return (
     <PageLayout>
       <div className="mb-12">
@@ -61,7 +65,7 @@ export default function ResourcesPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
               <Calculator className="h-6 w-6" />
             </div>
-            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Khan Academy Courses</h2>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Courses</h2>
           </div>
           
           <Accordion type="multiple" className="space-y-6">
@@ -116,14 +120,12 @@ export default function ResourcesPage() {
                                   >
                                     <div>
                                       <div className="font-bold text-base text-[#2C2C2C] leading-tight mb-2">{topic.name}</div>
-                                      <div className="inline-flex items-center rounded-md border-2 border-black/5 bg-black/5 px-2 py-1 text-xs font-bold text-[#2C2C2C]/60 uppercase">Khan Academy</div>
+                                      <div className="inline-flex items-center rounded-md border-2 border-black/5 bg-black/5 px-2 py-1 text-xs font-bold text-[#2C2C2C]/60 uppercase">Video Lesson</div>
                                     </div>
                                     <div className="flex items-center justify-between gap-3 mt-2">
-                                      <Button size="sm" className="flex-1 gap-2 border-2 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]" asChild>
-                                        <Link href={`https://www.youtube.com/watch?v=${topic.videoId}`} target="_blank">
-                                          <Play className="h-4 w-4" />
-                                          Watch
-                                        </Link>
+                                      <Button size="sm" className="flex-1 gap-2 border-2 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]" onClick={() => setSelectedVideo({ id: topic.videoId, title: topic.name })}>
+                                        <Play className="h-4 w-4" />
+                                        Watch
                                       </Button>
                                       <TopicProgressButton courseId={course.id} videoId={topic.videoId} />
                                     </div>
@@ -173,6 +175,15 @@ export default function ResourcesPage() {
           </div>
         </section>
       </div>
+
+      {selectedVideo && (
+        <VideoPlayerDialog
+          isOpen={!!selectedVideo}
+          onClose={() => setSelectedVideo(null)}
+          videoId={selectedVideo.id}
+          title={selectedVideo.title}
+        />
+      )}
     </PageLayout>
   )
 }
