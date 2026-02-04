@@ -45,6 +45,9 @@ export const metadata: Metadata = {
   },
 }
 
+import { Toaster } from "@/components/ui/sonner"
+import { VoiceNavigator } from "@/components/voice-navigator"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -76,6 +79,8 @@ export default function RootLayout({
           src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
         />
         {children}
+        <VoiceNavigator />
+        <Toaster />
         <Analytics />
       </body>
     </html>
