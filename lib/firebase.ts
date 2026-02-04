@@ -3,7 +3,7 @@
 import { initializeApp, getApp, getApps } from "firebase/app"
 import { getAuth, GoogleAuthProvider } from "firebase/auth"
 import { getAnalytics, isSupported } from "firebase/analytics"
-import { getFirestore } from "firebase/firestore"
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,6 +19,16 @@ export const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()
 export const db = getFirestore(app)
+
+if (typeof window !== "undefined") {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == "failed-precondition") {
+      console.warn("Firebase persistence failed: Multiple tabs open")
+    } else if (err.code == "unimplemented") {
+      console.warn("Firebase persistence not supported by browser")
+    }
+  })
+}
 
 export let analytics: ReturnType<typeof getAnalytics> | null = null
 ;(async () => {

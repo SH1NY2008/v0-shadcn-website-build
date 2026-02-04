@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useQuizSound } from "@/hooks/use-quiz-sound"
 
 export default function QuizCategoryPage() {
   const params = useParams()
@@ -26,6 +27,8 @@ export default function QuizCategoryPage() {
   const [showResult, setShowResult] = useState(false)
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
+
+  const { playCorrect, playIncorrect, playComplete } = useQuizSound()
 
   useEffect(() => {
     if (category) {
@@ -43,7 +46,12 @@ export default function QuizCategoryPage() {
     if (!selectedAnswer) return
     
     const isCorrect = selectedAnswer === questions[currentQuestionIndex].correctAnswer
-    if (isCorrect) setScore(score + 1)
+    if (isCorrect) {
+      setScore(score + 1)
+      playCorrect()
+    } else {
+      playIncorrect()
+    }
     
     setShowResult(true)
   }
@@ -55,6 +63,7 @@ export default function QuizCategoryPage() {
       setShowResult(false)
     } else {
       setQuizCompleted(true)
+      playComplete()
     }
   }
 
