@@ -10,6 +10,8 @@ import { ArrowRight, Calculator, BookOpen, Sigma, FunctionSquare, Pi, Triangle, 
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useQuizSettings } from "@/hooks/use-quiz-settings"
+import { useTeacherMode } from "@/context/teacher-mode-context"
+import { Plus, BarChart3, Edit3 } from "lucide-react"
 
 // Group by category
 const categories = questionsData.reduce((acc: any, q: any) => {
@@ -34,6 +36,7 @@ const getCategoryIcon = (category: string) => {
 
 export default function QuizzesPage() {
   const { settings, toggleSound, toggleHaptics, loaded } = useQuizSettings()
+  const { isTeacherMode } = useTeacherMode()
 
   return (
     <PageLayout>
@@ -41,15 +44,25 @@ export default function QuizzesPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
           <div>
             <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
-              Quizzes
+              {isTeacherMode ? "Assignments" : "Quizzes"}
             </h1>
             <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
-              Master mathematics concepts from Algebra to Calculus.
+              {isTeacherMode 
+                ? "Create and manage assessments for your students." 
+                : "Master mathematics concepts from Algebra to Calculus."}
             </p>
           </div>
           
+          {isTeacherMode && (
+            <div className="flex gap-4">
+              <Button className="bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] shadow-md uppercase tracking-wide gap-2">
+                <Plus className="h-6 w-6" /> Create New
+              </Button>
+            </div>
+          )}
+          
           {/* Accessibility Settings Card */}
-          {loaded && (
+          {!isTeacherMode && loaded && (
             <Card className="border-4 border-black/10 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] bg-white w-full md:w-auto">
               <CardContent className="p-4 flex flex-col gap-4">
                 <div className="flex items-center gap-2 text-[#2C2C2C] font-black uppercase tracking-tight border-b-2 border-black/5 pb-2 mb-1">
@@ -115,12 +128,23 @@ export default function QuizzesPage() {
               </p>
             </div>
             <div className="mt-8">
-              <Link href={`/quizzes/${encodeURIComponent(category)}`} className="w-full block">
-                <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                  Start Quiz
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-              </Link>
+              {isTeacherMode ? (
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                    <BarChart3 className="h-5 w-5" /> Results
+                  </Button>
+                  <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                    <Edit3 className="h-5 w-5" /> Edit
+                  </Button>
+                </div>
+              ) : (
+                <Link href={`/quizzes/${encodeURIComponent(category)}`} className="w-full block">
+                  <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                    Start Quiz
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         ))}

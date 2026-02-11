@@ -47,6 +47,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from "@/components/ui/sonner"
 import { VoiceNavigator } from "@/components/voice-navigator"
+import { TeacherModeProvider } from "@/context/teacher-mode-context"
 
 export default function RootLayout({
   children,
@@ -56,32 +57,34 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
-        <Script
-          id="mathjax-config"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.MathJax = {
-                tex: {
-                  inlineMath: [['\\\\(', '\\\\)']],
-                  displayMath: [['\\\\[', '\\\\]']]
-                },
-                svg: {
-                  fontCache: 'global'
-                }
-              };
-            `,
-          }}
-        />
-        <Script
-          id="mathjax-script"
-          strategy="afterInteractive"
-          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
-        />
-        {children}
-        <VoiceNavigator />
-        <Toaster />
-        <Analytics />
+        <TeacherModeProvider>
+          <Script
+            id="mathjax-config"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.MathJax = {
+                  tex: {
+                    inlineMath: [['\\\\(', '\\\\)']],
+                    displayMath: [['\\\\[', '\\\\]']]
+                  },
+                  svg: {
+                    fontCache: 'global'
+                  }
+                };
+              `,
+            }}
+          />
+          <Script
+            id="mathjax-script"
+            strategy="afterInteractive"
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+          />
+          {children}
+          <VoiceNavigator />
+          <Toaster />
+          <Analytics />
+        </TeacherModeProvider>
       </body>
     </html>
   )

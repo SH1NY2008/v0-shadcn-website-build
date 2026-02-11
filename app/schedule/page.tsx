@@ -16,6 +16,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { motion } from "framer-motion"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { useTeacherMode } from "@/context/teacher-mode-context"
 
 function generateGoogleCalendarLink(
   title: string,
@@ -73,6 +74,7 @@ function groupSessionsByDate(sessions: StudySession[]): Record<string, StudySess
 
 export default function SchedulePage() {
   const router = useRouter()
+  const { isTeacherMode } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
   const [sessions, setSessions] = useState<StudySession[]>([])
   const [loading, setLoading] = useState(true)
@@ -209,11 +211,13 @@ export default function SchedulePage() {
         <div className="flex flex-col md:flex-row items-end justify-between gap-6">
           <div>
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
-              Study<br />
-              <span className="text-[#006B6B]">Schedule</span>
+              {isTeacherMode ? "Office" : "Study"}<br />
+              <span className="text-[#006B6B]">{isTeacherMode ? "Hours" : "Schedule"}</span>
             </h1>
             <p className="text-2xl md:text-3xl font-bold text-[#2C2C2C]/60 max-w-2xl leading-tight">
-              Plan your math learning sessions
+              {isTeacherMode 
+                ? "Schedule sessions with your students and manage your availability" 
+                : "Plan your math learning sessions"}
             </p>
           </div>
           {user ? (
@@ -255,7 +259,7 @@ export default function SchedulePage() {
                 transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
                 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight"
               >
-                No sessions scheduled
+                {isTeacherMode ? "No office hours scheduled" : "No sessions scheduled"}
               </motion.h3>
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
@@ -263,7 +267,9 @@ export default function SchedulePage() {
                 transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
                 className="text-xl font-bold text-[#2C2C2C]/60"
               >
-                Create your first study session to get started
+                {isTeacherMode 
+                  ? "Set your availability for students to book time with you" 
+                  : "Create your first study session to get started"}
               </motion.p>
             </div>
         </div>
