@@ -19,7 +19,9 @@ export function CourseProgressBadge({ courseId, totalTopics }: { courseId: strin
   useEffect(() => {
     if (!user) return
     const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
-    const unsub = onSnapshot(ref, (snap) => setCompleted(snap.size))
+    const unsub = onSnapshot(ref, (snap) => setCompleted(snap.size), (error) => {
+      console.error(`Error listening to course progress for ${courseId}:`, error)
+    })
     return () => unsub()
   }, [user, courseId])
 

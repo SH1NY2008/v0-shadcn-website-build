@@ -43,6 +43,8 @@ export default function LandingPage() {
         const completed = snap.size
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0
         setCoursePercents((prev) => ({ ...prev, [course.id]: percent }))
+      }, (error) => {
+        console.error(`Error listening to topics for ${course.id}:`, error)
       })
       unsubs.push(unsub)
     }

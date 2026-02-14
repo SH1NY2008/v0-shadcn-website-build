@@ -1,7 +1,8 @@
 "use client"
 
-import { auth, googleProvider } from "@/lib/firebase"
-import { signInWithPopup, createUserWithEmailAndPassword } from "firebase/auth"
+import { auth, googleProvider, db } from "@/lib/firebase"
+import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
+import { doc, setDoc } from "firebase/firestore"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -16,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { PageLayout } from "@/components/page-layout"
 import { FieldDescription } from "@/components/ui/field"
+import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
 
 function SignupForm({
@@ -33,7 +35,18 @@ function SignupForm({
     setError(null)
     setLoading(true)
     try {
-      await signInWithPopup(auth, googleProvider)
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+      
+      // Initialize user data in Firestore if it doesn't exist
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        role: isTeacher ? "teacher" : "student",
+        createdAt: new Date().toISOString()
+      }, { merge: true })
+      
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign in with Google")
@@ -47,7 +60,17 @@ function SignupForm({
     setError(null)
     setLoading(true)
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
+      const result = await createUserWithEmailAndPassword(auth, email, password)
+      const user = result.user
+      
+      // Store role in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        role: isTeacher ? "teacher" : "student",
+        createdAt: new Date().toISOString()
+      })
+      
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign up")
@@ -81,7 +104,7 @@ function SignupForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="password" className="text-black font-bold">Password</FieldLabel>
+                <FieldLabel htmlFor="password" title="Password" className="text-black font-bold">Password</FieldLabel>
                 <Input 
                   id="password" 
                   type="password" 
@@ -90,6 +113,19 @@ function SignupForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+              </Field>
+
+              <Field className="flex items-center gap-3 bg-white/50 p-3 rounded-lg border-2 border-black/10">
+                <Switch
+                  id="teacher-toggle"
+                  checked={isTeacher}
+                  onCheckedChange={setIsTeacher}
+                  className="data-[state=checked]:bg-[#006B6B]"
+                />
+                <div className="flex flex-col">
+                  <FieldLabel htmlFor="teacher-toggle" className="text-black font-black uppercase text-xs tracking-tight leading-none mb-1">Teacher Account</FieldLabel>
+                  <p className="text-[10px] font-bold text-black/50 leading-none">I am an educator creating a class</p>
+                </div>
               </Field>
               
               <Field>

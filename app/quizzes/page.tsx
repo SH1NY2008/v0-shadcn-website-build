@@ -12,6 +12,14 @@ import { Label } from "@/components/ui/label"
 import { useQuizSettings } from "@/hooks/use-quiz-settings"
 import { useTeacherMode } from "@/context/teacher-mode-context"
 import { Plus, BarChart3, Edit3 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { auth } from "@/lib/firebase"
+import { onAuthStateChanged, type User } from "firebase/auth"
+import { getTeacherClasses, ClassData, Assignment } from "@/lib/teacher"
+import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { Calendar as CalendarIcon, Clock } from "lucide-react"
 
 // Group by category
 const categories = questionsData.reduce((acc: any, q: any) => {
@@ -37,6 +45,40 @@ const getCategoryIcon = (category: string) => {
 export default function QuizzesPage() {
   const { settings, toggleSound, toggleHaptics, loaded } = useQuizSettings()
   const { isTeacherMode } = useTeacherMode()
+  const [user, setUser] = useState<User | null>(null)
+  const [classes, setClasses] = useState<ClassData[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u))
+    return () => unsub()
+  }, [])
+
+  useEffect(() => {
+    if (isTeacherMode && user) {
+      getTeacherClasses(user.uid)
+        .then(setClasses)
+        .catch(error => console.error("Error fetching teacher classes:", error))
+      
+      const q = query(collection(db, "assignments"), where("teacherId", "==", user.uid))
+      const unsub = onSnapshot(q, (snap) => {
+        setAssignments(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Assignment)))
+      }, (error) => {
+        console.error("Error listening to assignments:", error)
+      })
+      return () => unsub()
+    } else if (user) {
+      // In a real app, you'd fetch assignments for the classes the student is enrolled in
+      // For now, we'll fetch all active assignments
+      const q = query(collection(db, "assignments"), where("status", "==", "active"))
+      const unsub = onSnapshot(q, (snap) => {
+        setAssignments(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Assignment)))
+      }, (error) => {
+        console.error("Error listening to active assignments:", error)
+      })
+      return () => unsub()
+    }
+  }, [isTeacherMode, user])
 
   return (
     <PageLayout>
@@ -55,9 +97,15 @@ export default function QuizzesPage() {
           
           {isTeacherMode && (
             <div className="flex gap-4">
-              <Button className="bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] shadow-md uppercase tracking-wide gap-2">
-                <Plus className="h-6 w-6" /> Create New
-              </Button>
+              <CreateAssignmentDialog 
+                teacherId={user?.uid || ""} 
+                classes={classes}
+                trigger={
+                  <Button className="bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] shadow-md uppercase tracking-wide gap-2">
+                    <Plus className="h-6 w-6" /> Create New
+                  </Button>
+                }
+              />
             </div>
           )}
           
@@ -105,6 +153,72 @@ export default function QuizzesPage() {
         </div>
       </div>
 
+      {assignments.length > 0 && (
+        <div className="mb-12">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+              <Clock className="h-6 w-6" />
+            </div>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+              {isTeacherMode ? "Manage Assignments" : "Active Assignments"}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {assignments.map((assignment) => (
+              <div 
+                key={assignment.id} 
+                className="group flex flex-col justify-between rounded-xl border-4 border-black/10 bg-[#FFC971]/20 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)]"
+              >
+                <div>
+                  <div className="mb-6 flex items-start justify-between">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border-4 border-black/10 bg-white text-[#006B6B] shadow-sm">
+                      <CalendarIcon className="h-6 w-6" />
+                    </div>
+                    <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
+                      DUE {assignment.dueDate.toDate().toLocaleDateString()}
+                    </Badge>
+                  </div>
+                  <h3 className="mb-3 text-2xl font-black uppercase leading-[0.9] text-[#2C2C2C]">
+                    {assignment.title}
+                  </h3>
+                  <p className="text-sm font-bold text-[#2C2C2C]/60 leading-tight">
+                    {assignment.description || `Complete the quiz for ${assignment.courseId}`}
+                  </p>
+                </div>
+                <div className="mt-8">
+                  {isTeacherMode ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                        Edit
+                      </Button>
+                      <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-red-500 hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                        Delete
+                      </Button>
+                    </div>
+                  ) : (
+                    <Link href={`/quizzes/${encodeURIComponent(assignment.courseId)}`} className="w-full block">
+                      <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                        Complete Task
+                        <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+          <BookOpen className="h-6 w-6" />
+        </div>
+        <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+          Quiz Categories
+        </h2>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.keys(categories).map((category, index) => (
           <div 
@@ -130,9 +244,11 @@ export default function QuizzesPage() {
             <div className="mt-8">
               {isTeacherMode ? (
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                    <BarChart3 className="h-5 w-5" /> Results
-                  </Button>
+                  <Link href="/quizzes/results" className="flex-1">
+                    <Button variant="outline" className="w-full border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                      <BarChart3 className="h-5 w-5" /> Results
+                    </Button>
+                  </Link>
                   <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
                     <Edit3 className="h-5 w-5" /> Edit
                   </Button>

@@ -16,17 +16,49 @@ import questionsData from "../data/questions.json"
 import Link from "next/link"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useTeacherMode } from "@/context/teacher-mode-context"
-import { Users, FileText, Settings, Plus } from "lucide-react"
+import { Users, FileText, Settings, Plus, LayoutDashboard } from "lucide-react"
+import { subscribeToTeacherStats, ClassData, createClass } from "@/lib/teacher"
+import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 export default function DashboardPage() {
   const { isTeacherMode } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
+  const [isCreateClassOpen, setIsCreateClassOpen] = useState(false)
+  const [newClassName, setNewClassName] = useState("")
+  const [newClassPeriod, setNewClassPeriod] = useState("")
+  const [isCreating, setIsCreating] = useState(false)
+  
   const [studyHours, setStudyHours] = useState<number>(0)
   const [activeCourses, setActiveCourses] = useState<number>(0)
   const [overallProgress, setOverallProgress] = useState<number>(0)
   const [achievements, setAchievements] = useState<number>(0)
   const [weeklyCompleted, setWeeklyCompleted] = useState<number>(0)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
+  
+  // Teacher specific state
+  const [teacherData, setTeacherData] = useState<{
+    totalStudents: number;
+    avgPerformance: number;
+    classCount: number;
+    classes: ClassData[];
+  }>({
+    totalStudents: 0,
+    avgPerformance: 0,
+    classCount: 0,
+    classes: []
+  })
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
@@ -35,18 +67,45 @@ export default function DashboardPage() {
 
   const name = user?.displayName || (isTeacherMode ? "Educator" : "Student")
 
-  const teacherStats = [
-    { title: "Total Students", icon: Users, value: "124", sub: "Across 4 classes" },
-    { title: "Avg. Performance", icon: TrendingUp, value: "78%", sub: "+5% from last week" },
-    { title: "Pending Reviews", icon: FileText, value: "12", sub: "Quizzes needing feedback" },
-    { title: "Course Materials", icon: BookOpen, value: "42", sub: "Published resources" }
-  ]
+  useEffect(() => {
+    if (isTeacherMode && user) {
+      const unsub = subscribeToTeacherStats(user.uid, (stats) => {
+        setTeacherData(stats)
+      })
+      return () => unsub()
+    }
+  }, [isTeacherMode, user])
 
-  const classes = [
-    { name: "AP Calculus BC - Period 2", students: 32, avgProgress: 85 },
-    { name: "Algebra II Honors - Period 4", students: 28, avgProgress: 72 },
-    { name: "Pre-Calculus - Period 5", students: 34, avgProgress: 64 },
-    { name: "AP Calculus AB - Period 1", students: 30, avgProgress: 91 },
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !newClassName || !newClassPeriod) return
+    
+    setIsCreating(true)
+    try {
+      await createClass(user.uid, {
+        name: newClassName,
+        period: newClassPeriod,
+        studentCount: 0,
+        avgProgress: 0,
+        teacherId: user.uid
+      })
+      setIsCreateClassOpen(false)
+      setNewClassName("")
+      setNewClassPeriod("")
+      toast.success("Class created successfully!")
+    } catch (error) {
+      console.error("Error creating class:", error)
+      toast.error("Failed to create class")
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const teacherStats = [
+    { title: "Total Students", icon: Users, value: teacherData.totalStudents.toString(), sub: `Across ${teacherData.classCount} classes` },
+    { title: "Avg. Performance", icon: TrendingUp, value: `${teacherData.avgPerformance}%`, sub: "Real-time class average" },
+    { title: "Pending Reviews", icon: FileText, value: "0", sub: "Fetch from submissions" },
+    { title: "Course Materials", icon: BookOpen, value: "0", sub: "Published resources" }
   ]
 
   useEffect(() => {
@@ -60,17 +119,21 @@ export default function DashboardPage() {
       const now = new Date()
       const oneWeekAgo = new Date(now)
       oneWeekAgo.setDate(now.getDate() - 7)
-      for (const courseId of courseIds) {
-        const total = curriculum.find((c) => c.id === courseId)?.units.reduce((acc, u) => acc + u.topics.length, 0) ?? 0
-        totalTopics += total
-        const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
-        const snaps = await getDocs(ref)
-        const completed = snaps.size
-        if (completed > 0) active += 1
-        completedTopics += completed
-        const recentQ = query(ref, where("completedAt", ">=", oneWeekAgo))
-        const recentSnaps = await getDocs(recentQ)
-        completedThisWeek += recentSnaps.size
+      try {
+        for (const courseId of courseIds) {
+          const total = curriculum.find((c) => c.id === courseId)?.units.reduce((acc, u) => acc + u.topics.length, 0) ?? 0
+          totalTopics += total
+          const ref = collection(db, "users", user.uid, "courses", courseId, "topics")
+          const snaps = await getDocs(ref)
+          const completed = snaps.size
+          if (completed > 0) active += 1
+          completedTopics += completed
+          const recentQ = query(ref, where("completedAt", ">=", oneWeekAgo))
+          const recentSnaps = await getDocs(recentQ)
+          completedThisWeek += recentSnaps.size
+        }
+      } catch (error) {
+        console.error("Error fetching course progress data:", error)
       }
       setActiveCourses(active)
       setAchievements(completedTopics)
@@ -98,6 +161,8 @@ export default function DashboardPage() {
         const completed = snap.size
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0
         setCoursePercents((prev) => ({ ...prev, [courseId]: percent }))
+      }, (error) => {
+        console.error(`Error listening to topics for ${courseId}:`, error)
       })
       unsubs.push(unsub)
     }
@@ -177,27 +242,34 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
               {isTeacherMode ? (
-                classes.map((cls, i) => (
-                  <ScrollReveal key={cls.name} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
-                    <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{cls.name}</h4>
-                          <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
-                            {cls.avgProgress}%
-                          </Badge>
+                teacherData.classes.length > 0 ? (
+                  teacherData.classes.map((cls, i) => (
+                    <ScrollReveal key={cls.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
+                      <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{cls.name}</h4>
+                            <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
+                              {cls.avgProgress}%
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-bold text-[#2C2C2C]/60 mb-4 leading-snug">{cls.studentCount} Students enrolled</p>
                         </div>
-                        <p className="text-sm font-bold text-[#2C2C2C]/60 mb-4 leading-snug">{cls.students} Students enrolled</p>
+                        <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-[#006B6B]" 
+                            style={{ width: `${cls.avgProgress}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-[#006B6B]" 
-                          style={{ width: `${cls.avgProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </ScrollReveal>
-                ))
+                    </ScrollReveal>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-12 bg-white/20 rounded-2xl border-2 border-dashed border-black/10">
+                    <p className="font-bold text-[#2C2C2C]/60 uppercase tracking-widest">No classes found</p>
+                    <p className="text-sm text-[#006B6B] font-bold mt-1">Add your first class to get started</p>
+                  </div>
+                )
               ) : (
                 curriculum.map((course, i) => (
                   <ScrollReveal key={course.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
@@ -223,11 +295,62 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
-              <Link href={isTeacherMode ? "#" : "/resources"}>
-                {isTeacherMode ? "Manage All Classes" : "View All Courses"}
-              </Link>
-            </Button>
+            {isTeacherMode ? (
+              <Dialog open={isCreateClassOpen} onOpenChange={setIsCreateClassOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide">
+                    Create New Class
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-[#FFC971] border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <DialogHeader>
+                    <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Create New Class</DialogTitle>
+                    <DialogDescription className="text-[#006B6B] font-bold">
+                      Add a new class period to your roster.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateClass} className="space-y-6 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="className" className="font-black uppercase text-xs tracking-widest text-[#2C2C2C]/60">Class Name</Label>
+                      <Input 
+                        id="className" 
+                        placeholder="e.g. Honors Algebra 2" 
+                        value={newClassName}
+                        onChange={(e) => setNewClassName(e.target.value)}
+                        className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="period" className="font-black uppercase text-xs tracking-widest text-[#2C2C2C]/60">Period</Label>
+                      <Input 
+                        id="period" 
+                        placeholder="e.g. Period 1" 
+                        value={newClassPeriod}
+                        onChange={(e) => setNewClassPeriod(e.target.value)}
+                        className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold"
+                        required
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        disabled={isCreating}
+                        className="w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        {isCreating ? "Creating..." : "Create Class"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
+                <Link href="/resources">
+                  View All Courses
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -245,24 +368,45 @@ export default function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               {isTeacherMode ? (
                 <>
-                  {[
-                    { title: "Create Assignment", icon: Plus, color: "bg-blue-500" },
-                    { title: "Review Submissions", icon: FileText, color: "bg-orange-500" },
-                    { title: "Curriculum Editor", icon: Settings, color: "bg-purple-500" },
-                    { title: "Student Roster", icon: Users, color: "bg-green-500" },
-                  ].map((tool, i) => (
-                    <ScrollReveal key={tool.title} delay={0.1 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
-                      <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
-                        <div>
-                          <div className={`p-2 w-fit rounded-xl text-white ${tool.color} mb-3 shadow-sm`}>
-                            <tool.icon className="h-6 w-6" />
+                  <ScrollReveal delay={0.1} yOffset={20} scaleOffset={0.02}>
+                    <CreateAssignmentDialog 
+                      teacherId={user?.uid || ""} 
+                      classes={teacherData.classes}
+                      trigger={
+                        <div className="h-full cursor-pointer rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
+                          <div>
+                            <div className="p-2 w-fit rounded-xl text-white bg-blue-500 mb-3 shadow-sm">
+                              <Plus className="h-6 w-6" />
+                            </div>
+                            <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">Create Assignment</h4>
                           </div>
-                          <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{tool.title}</h4>
+                          <div className="flex items-center text-[#2C2C2C]/40 font-black text-xs uppercase tracking-wide mt-4">
+                            Open Tool <ArrowRight className="ml-1 h-3 w-3" />
+                          </div>
                         </div>
-                        <div className="flex items-center text-[#2C2C2C]/40 font-black text-xs uppercase tracking-wide mt-4">
-                          Open Tool <ArrowRight className="ml-1 h-3 w-3" />
+                      }
+                    />
+                  </ScrollReveal>
+
+                  {[
+                    { title: "Review Submissions", icon: FileText, color: "bg-orange-500", href: "/quizzes/results" },
+                    { title: "Curriculum Editor", icon: Settings, color: "bg-purple-500", href: "/resources" },
+                    { title: "Student Roster", icon: Users, color: "bg-green-500", href: "/dashboard/roster" },
+                  ].map((tool, i) => (
+                    <ScrollReveal key={tool.title} delay={0.2 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
+                      <Link href={tool.href} className="block h-full">
+                        <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
+                          <div>
+                            <div className={`p-2 w-fit rounded-xl text-white ${tool.color} mb-3 shadow-sm`}>
+                              <tool.icon className="h-6 w-6" />
+                            </div>
+                            <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{tool.title}</h4>
+                          </div>
+                          <div className="flex items-center text-[#2C2C2C]/40 font-black text-xs uppercase tracking-wide mt-4">
+                            Open Tool <ArrowRight className="ml-1 h-3 w-3" />
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                     </ScrollReveal>
                   ))}
                 </>

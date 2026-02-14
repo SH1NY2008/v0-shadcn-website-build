@@ -131,7 +131,8 @@ export default function SchedulePage() {
         publicSessions = snap.docs.map((d) => d.data() as StudySession)
         mergeAndSet()
       },
-      () => {
+      (error) => {
+        console.error("Error listening to public sessions:", error)
         setLoading(false)
       },
     )
@@ -145,7 +146,8 @@ export default function SchedulePage() {
           userSessions = snap.docs.map((d) => d.data() as StudySession)
           mergeAndSet()
         },
-        () => {
+        (error) => {
+          console.error("Error listening to user sessions:", error)
           setLoading(false)
         },
       )

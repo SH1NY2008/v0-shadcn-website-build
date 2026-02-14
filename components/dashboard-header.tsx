@@ -17,13 +17,13 @@ export function DashboardHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const { isTeacherMode, setIsTeacherMode } = useTeacherMode()
+  const { isTeacherMode, setIsTeacherMode, userRole } = useTeacherMode()
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/schedule", label: "Schedule", icon: Calendar },
+    { href: "/schedule", label: isTeacherMode ? "Office Hours" : "Schedule", icon: Calendar },
     { href: "/resources", label: "Resources", icon: BookOpen },
-    { href: "/quizzes", label: "Quizzes", icon: GraduationCap },
+    { href: "/quizzes", label: isTeacherMode ? "Assignments" : "Quizzes", icon: GraduationCap },
   ]
 
   const handleSignOut = async () => {
@@ -54,16 +54,18 @@ export function DashboardHeader() {
               </SheetHeader>
               <div className="flex flex-col justify-between h-[calc(100%-80px)]">
                 <nav className="flex-1 space-y-2 p-6">
-                  <div className="flex items-center justify-between bg-black/5 px-4 py-4 rounded-xl border-2 border-black/10 mb-6">
-                    <Label htmlFor="teacher-mode-mobile" className="font-bold text-lg text-[#2C2C2C] cursor-pointer">
-                      Teacher Mode
-                    </Label>
-                    <Switch
-                      id="teacher-mode-mobile"
-                      checked={isTeacherMode}
-                      onCheckedChange={setIsTeacherMode}
-                    />
-                  </div>
+                  {userRole === "teacher" && (
+                    <div className="flex items-center justify-between bg-black/5 px-4 py-4 rounded-xl border-2 border-black/10 mb-6">
+                      <Label htmlFor="teacher-mode-mobile" className="font-bold text-lg text-[#2C2C2C] cursor-pointer">
+                        Teacher Mode
+                      </Label>
+                      <Switch
+                        id="teacher-mode-mobile"
+                        checked={isTeacherMode}
+                        onCheckedChange={setIsTeacherMode}
+                      />
+                    </div>
+                  )}
                   {links.map((link) => {
                     const isActive = pathname === link.href
                     return (
@@ -104,16 +106,18 @@ export function DashboardHeader() {
         
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-8">
-          <div className="flex items-center space-x-2 bg-black/5 px-4 py-2 rounded-full border-2 border-black/10">
-            <Switch
-              id="teacher-mode"
-              checked={isTeacherMode}
-              onCheckedChange={setIsTeacherMode}
-            />
-            <Label htmlFor="teacher-mode" className="font-bold text-[#2C2C2C] cursor-pointer">
-              Teacher Mode
-            </Label>
-          </div>
+          {userRole === "teacher" && (
+            <div className="flex items-center space-x-2 bg-black/5 px-4 py-2 rounded-full border-2 border-black/10">
+              <Switch
+                id="teacher-mode"
+                checked={isTeacherMode}
+                onCheckedChange={setIsTeacherMode}
+              />
+              <Label htmlFor="teacher-mode" className="font-bold text-[#2C2C2C] cursor-pointer">
+                Teacher Mode
+              </Label>
+            </div>
+          )}
           {links.map((link) => {
             const isActive = pathname === link.href
             return (

@@ -1,7 +1,8 @@
 "use client"
 
-import { auth, googleProvider } from "@/lib/firebase"
+import { auth, googleProvider, db } from "@/lib/firebase"
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth"
+import { doc, getDoc, setDoc } from "firebase/firestore"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -32,7 +33,23 @@ function LoginForm({
     setError(null)
     setLoading(true)
     try {
-      await signInWithPopup(auth, googleProvider)
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+      
+      // Check if user exists in Firestore, if not create as student by default
+      const userRef = doc(db, "users", user.uid)
+      const userSnap = await getDoc(userRef)
+      
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          role: "student", // Default for Google login if not existing
+          createdAt: new Date().toISOString()
+        })
+      }
+      
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign in with Google")

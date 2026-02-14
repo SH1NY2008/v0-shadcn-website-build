@@ -14,6 +14,8 @@ import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, RotateCcw } from "lucide-
 import { cn } from "@/lib/utils"
 import { useQuizSound } from "@/hooks/use-quiz-sound"
 import { useQuizHaptics } from "@/hooks/use-quiz-haptics"
+import { auth, db } from '@/lib/firebase'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
 export default function QuizCategoryPage() {
   const params = useParams()
@@ -28,6 +30,7 @@ export default function QuizCategoryPage() {
   const [showResult, setShowResult] = useState(false)
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const { playCorrect, playIncorrect, playComplete } = useQuizSound()
   const { hapticSuccess, hapticError, hapticImpact } = useQuizHaptics()
@@ -38,6 +41,28 @@ export default function QuizCategoryPage() {
       setQuestions(filtered)
     }
   }, [category])
+
+  const saveQuizResult = async (finalScore: number) => {
+    const user = auth.currentUser
+    if (!user) return
+
+    setSaving(true)
+    try {
+      await addDoc(collection(db, 'quiz_results'), {
+        userId: user.uid,
+        userName: user.displayName,
+        category: category,
+        score: finalScore,
+        totalQuestions: questions.length,
+        percentage: Math.round((finalScore / questions.length) * 100),
+        completedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error("Error saving quiz result:", error)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSelectAnswer = (value: string) => {
     if (showResult) return
@@ -67,9 +92,11 @@ export default function QuizCategoryPage() {
       setSelectedAnswer(null)
       setShowResult(false)
     } else {
+      const finalScore = score + (selectedAnswer === questions[currentQuestionIndex].correctAnswer ? 0 : 0) // score is already updated in handleSubmit
       setQuizCompleted(true)
       playComplete()
       hapticSuccess()
+      saveQuizResult(score)
     }
   }
 
@@ -101,7 +128,9 @@ export default function QuizCategoryPage() {
             <div className="space-y-8 my-8">
                 <div className="flex flex-col items-center justify-center">
                     <div className="text-7xl font-black text-[#006B6B] mb-2">{percentage}%</div>
-                    <p className="text-xl font-bold text-[#2C2C2C]/60">You scored {score} out of {questions.length}</p>
+                    <p className="text-xl font-bold text-[#2C2C2C]/60">
+                      {saving ? "Saving your results..." : `You scored ${score} out of ${questions.length}`}
+                    </p>
                 </div>
                 
                 <div className="w-full bg-black/5 h-6 rounded-full overflow-hidden border-2 border-black/10">
