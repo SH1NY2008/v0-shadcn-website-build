@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 type QuizSettings = {
   soundEnabled: boolean;
   hapticsEnabled: boolean;
-  fontSize: number;
+  zoom: number;
 };
 
 const DEFAULT_SETTINGS: QuizSettings = {
   soundEnabled: true,
   hapticsEnabled: true,
-  fontSize: 16,
+  zoom: 1,
 };
 
 export function useQuizSettings() {
@@ -43,14 +43,14 @@ export function useQuizSettings() {
 
   const toggleSound = () => updateSettings({ soundEnabled: !settings.soundEnabled });
   const toggleHaptics = () => updateSettings({ hapticsEnabled: !settings.hapticsEnabled });
-  const updateFontSize = (size: number) => updateSettings({ fontSize: size });
+  const updateZoom = (level: number) => updateSettings({ zoom: level });
 
   return {
     settings,
     updateSettings,
     toggleSound,
     toggleHaptics,
-    updateFontSize,
+    updateZoom,
     loaded
   };
 }

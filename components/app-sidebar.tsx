@@ -17,6 +17,7 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
+  IconAccessible
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -129,6 +130,11 @@ const data = {
       title: "Search",
       url: "#",
       icon: IconSearch,
+    },
+    {
+      title: "Accessibility",
+      url: "#",
+      icon: IconAccessible,
     },
   ],
   documents: [

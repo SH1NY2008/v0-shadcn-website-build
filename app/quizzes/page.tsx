@@ -17,8 +17,6 @@ import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { getTeacherClasses, ClassData, Assignment } from "@/lib/teacher"
 import { CreateAssignmentDialog } from "@/components/create-assignment-dialog";
-import { FontSizeAdjuster } from "../components/FontSizeAdjuster";
-import GameMode from "../components/GameMode";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
@@ -45,7 +43,7 @@ const getCategoryIcon = (category: string) => {
 }
 
 export default function QuizzesPage() {
-  const { settings, toggleSound, toggleHaptics, loaded } = useQuizSettings()
+  const { settings, toggleSound, toggleHaptics, updateFontSize, loaded } = useQuizSettings()
   const { isTeacherMode } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
   const [classes, setClasses] = useState<ClassData[]>([])
@@ -150,9 +148,21 @@ export default function QuizzesPage() {
                     />
                   </div>
 
+                <div className="flex items-center justify-between gap-8">
+                  <div className="flex items-center gap-3">
+                    <Label htmlFor="font-size" className="font-bold text-[#2C2C2C] cursor-pointer">Text Size</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => updateFontSize(settings.fontSize - 1)} size="sm" variant="outline" className="font-bold">-</Button>
+                    <span className="font-bold text-[#2C2C2C]">{settings.fontSize}px</span>
+                    <Button onClick={() => updateFontSize(settings.fontSize + 1)} size="sm" variant="outline" className="font-bold">+</Button>
+                    <Button onClick={() => updateFontSize(16)} size="sm" variant="outline" className="font-bold">Reset</Button>
+                  </div>
+                </div>
 
 
-                <FontSizeAdjuster />
+
+
               </CardContent>
             </Card>
           )}
@@ -161,19 +171,7 @@ export default function QuizzesPage() {
 
       {assignments.length > 0 && (
         <div className="mb-12">
-          <div className="mb-12">
-        <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
-                <Binary className="h-6 w-6" />
-            </div>
-            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
-                Game Mode
-            </h2>
-        </div>
-        <div className="p-6 rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
-            <GameMode />
-        </div>
-      </div>
+    
 
       <div className="mb-6 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">

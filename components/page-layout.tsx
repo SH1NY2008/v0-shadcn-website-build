@@ -15,7 +15,7 @@ export function PageLayout({ children, className, style }: PageLayoutProps) {
     <div className="min-h-screen bg-[#FFB627]" style={style}>
       <div className="flex min-h-screen flex-col transition-all duration-300 ease-in-out">
         <DashboardHeader />
-        <main className={cn("flex-1 px-4 py-8 md:px-8 md:py-12 lg:px-12", className)}>
+        <main role="main" className={cn("flex-1 px-4 py-8 md:px-8 md:py-12 lg:px-12", className)}>
           <div className="mx-auto w-full max-w-[1600px]">
             {children}
           </div>
