@@ -16,7 +16,9 @@ import { useState, useEffect } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { getTeacherClasses, ClassData, Assignment } from "@/lib/teacher"
-import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
+import { CreateAssignmentDialog } from "@/components/create-assignment-dialog";
+import { FontSizeAdjuster } from "../components/FontSizeAdjuster";
+import GameMode from "../components/GameMode";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
@@ -81,7 +83,7 @@ export default function QuizzesPage() {
   }, [isTeacherMode, user])
 
   return (
-    <PageLayout>
+    <PageLayout style={{ fontSize: `${settings.fontSize}px` }}>
       <div className="mb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
           <div>
@@ -136,17 +138,21 @@ export default function QuizzesPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-8">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className={`h-5 w-5 ${settings.hapticsEnabled ? "text-[#006B6B]" : "text-gray-400"}`} />
-                    <Label htmlFor="haptics-toggle" className="font-bold text-[#2C2C2C] cursor-pointer">Haptic Feedback</Label>
+                    <div className="flex items-center gap-3">
+                      <Smartphone className={`h-5 w-5 ${settings.hapticsEnabled ? "text-[#006B6B]" : "text-gray-400"}`} />
+                      <Label htmlFor="haptics-toggle" className="font-bold text-[#2C2C2C] cursor-pointer">Haptic Feedback</Label>
+                    </div>
+                    <Switch 
+                      id="haptics-toggle" 
+                      checked={settings.hapticsEnabled} 
+                      onCheckedChange={toggleHaptics}
+                      className="data-[state=checked]:bg-[#006B6B]"
+                    />
                   </div>
-                  <Switch 
-                    id="haptics-toggle" 
-                    checked={settings.hapticsEnabled} 
-                    onCheckedChange={toggleHaptics}
-                    className="data-[state=checked]:bg-[#006B6B]"
-                  />
-                </div>
+
+
+
+                <FontSizeAdjuster />
               </CardContent>
             </Card>
           )}
@@ -155,7 +161,21 @@ export default function QuizzesPage() {
 
       {assignments.length > 0 && (
         <div className="mb-12">
-          <div className="mb-6 flex items-center gap-4">
+          <div className="mb-12">
+        <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+                <Binary className="h-6 w-6" />
+            </div>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+                Game Mode
+            </h2>
+        </div>
+        <div className="p-6 rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
+            <GameMode />
+        </div>
+      </div>
+
+      <div className="mb-6 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
               <Clock className="h-6 w-6" />
             </div>
