@@ -1,6 +1,6 @@
 
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment } from "firebase/firestore";
 
 // Types
 export interface Topic {
@@ -16,6 +16,10 @@ export interface Post {
   avatar: string;
   message: string;
   pinned: boolean;
+  upvotes: number;
+  downvotes: number;
+  upvotedBy: string[];
+  downvotedBy: string[];
   createdAt: any;
   replies?: Reply[];
 }
@@ -26,6 +30,10 @@ export interface Reply {
   authorId: string;
   avatar: string;
   message: string;
+  upvotes: number;
+  downvotes: number;
+  upvotedBy: string[];
+  downvotedBy: string[];
   createdAt: any;
 }
 
@@ -92,31 +100,161 @@ export async function getTopic(id: string): Promise<Topic | null> {
   return null;
 }
 
+export function onPostsUpdate(topicId: string, callback: (posts: Post[]) => void) {
+  const postsCol = collection(db, "topics", topicId, "posts");
+  const unsubscribe = onSnapshot(postsCol, (snapshot) => {
+    const postList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+    const sortedPostList = postList.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return a.createdAt?.seconds - b.createdAt?.seconds;
+    });
+    callback(sortedPostList);
+  });
+  return unsubscribe;
+}
+
 export async function getPosts(topicId: string): Promise<Post[]> {
   const postsCol = collection(db, "topics", topicId, "posts");
   const postSnapshot = await getDocs(postsCol);
   const postList = postSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-  return postList.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds);
+  return postList.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return a.createdAt?.seconds - b.createdAt?.seconds;
+  });
 }
 
-export async function createPost(topicId: string, post: Omit<Post, 'id' | 'createdAt'>) {
+export async function togglePinPost(topicId: string, postId: string, pinned: boolean) {
+  const postRef = doc(db, "topics", topicId, "posts", postId);
+  await updateDoc(postRef, { pinned: !pinned });
+}
+
+export async function createPost(topicId: string, post: Omit<Post, 'id' | 'createdAt' | 'upvotes' | 'downvotes' | 'upvotedBy' | 'downvotedBy'>) {
   const postsCol = collection(db, "topics", topicId, "posts");
   await addDoc(postsCol, {
     ...post,
+    upvotes: 0,
+    downvotes: 0,
+    upvotedBy: [],
+    downvotedBy: [],
     createdAt: serverTimestamp(),
   });
 }
 
-export async function createReply(topicId: string, postId: string, reply: Omit<Reply, 'id' | 'createdAt'>) {
+export async function voteOnPost(topicId: string, postId: string, userId: string, voteType: 'upvote' | 'downvote') {
+  const postRef = doc(db, "topics", topicId, "posts", postId);
+  const postSnap = await getDoc(postRef);
+
+  if (postSnap.exists()) {
+    const post = postSnap.data() as Post;
+    const upvoted = post.upvotedBy.includes(userId);
+    const downvoted = post.downvotedBy.includes(userId);
+
+    let updates: any = {};
+
+    if (voteType === 'upvote') {
+      if (upvoted) {
+        // User is removing their upvote
+        updates.upvotes = increment(-1);
+        updates.upvotedBy = arrayRemove(userId);
+      } else {
+        // User is adding an upvote
+        updates.upvotes = increment(1);
+        updates.upvotedBy = arrayUnion(userId);
+        if (downvoted) {
+          // If user had downvoted, remove the downvote
+          updates.downvotes = increment(-1);
+          updates.downvotedBy = arrayRemove(userId);
+        }
+      }
+    } else if (voteType === 'downvote') {
+      if (downvoted) {
+        // User is removing their downvote
+        updates.downvotes = increment(-1);
+        updates.downvotedBy = arrayRemove(userId);
+      } else {
+        // User is adding a downvote
+        updates.downvotes = increment(1);
+        updates.downvotedBy = arrayUnion(userId);
+        if (upvoted) {
+          // If user had upvoted, remove the upvote
+          updates.upvotes = increment(-1);
+          updates.upvotedBy = arrayRemove(userId);
+        }
+      }
+    }
+    await updateDoc(postRef, updates);
+  }
+}
+
+export async function createReply(topicId: string, postId: string, reply: Omit<Reply, 'id' | 'createdAt' | 'upvotes' | 'downvotes' | 'upvotedBy' | 'downvotedBy'>) {
   const postRef = doc(db, "topics", topicId, "posts", postId);
   const replyWithTimestamp = {
     ...reply,
     id: doc(collection(db, "dummy")).id, // Generate a unique ID for the reply
+    upvotes: 0,
+    downvotes: 0,
+    upvotedBy: [],
+    downvotedBy: [],
     createdAt: new Date(),
   };
   await updateDoc(postRef, {
     replies: arrayUnion(replyWithTimestamp)
   });
+}
+
+export async function voteOnReply(topicId: string, postId: string, replyId: string, userId: string, voteType: 'upvote' | 'downvote') {
+  const postRef = doc(db, "topics", topicId, "posts", postId);
+  const postSnap = await getDoc(postRef);
+
+  if (postSnap.exists()) {
+    const post = postSnap.data() as Post;
+    const replyIndex = post.replies?.findIndex(r => r.id === replyId);
+
+    if (post.replies && replyIndex !== undefined && replyIndex !== -1) {
+      const reply = post.replies[replyIndex];
+      const upvoted = reply.upvotedBy.includes(userId);
+      const downvoted = reply.downvotedBy.includes(userId);
+
+      if (voteType === 'upvote') {
+        if (upvoted) {
+          // User is removing their upvote
+          reply.upvotes -= 1;
+          reply.upvotedBy = reply.upvotedBy.filter(id => id !== userId);
+        } else {
+          // User is adding an upvote
+          reply.upvotes += 1;
+          reply.upvotedBy.push(userId);
+          if (downvoted) {
+            // If user had downvoted, remove the downvote
+            reply.downvotes -= 1;
+            reply.downvotedBy = reply.downvotedBy.filter(id => id !== userId);
+          }
+        }
+      } else if (voteType === 'downvote') {
+        if (downvoted) {
+          // User is removing their downvote
+          reply.downvotes -= 1;
+          reply.downvotedBy = reply.downvotedBy.filter(id => id !== userId);
+        } else {
+          // User is adding a downvote
+          reply.downvotes += 1;
+          reply.downvotedBy.push(userId);
+          if (upvoted) {
+            // If user had upvoted, remove the upvote
+            reply.upvotes -= 1;
+            reply.upvotedBy = reply.upvotedBy.filter(id => id !== userId);
+          }
+        }
+      }
+      
+      const updatedReplies = [...post.replies];
+      updatedReplies[replyIndex] = reply;
+
+      await updateDoc(postRef, { replies: updatedReplies });
+    }
+  }
 }
 
 export async function deletePost(topicId: string, postId: string) {

@@ -1,6 +1,7 @@
 
 'use client'
 
+import { PageLayout } from "@/components/page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +10,7 @@ import { getPeerReview, getRubric, getReviews, createReview, type PeerReview, ty
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 
 export default function PeerReviewSessionPage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<User | null>(null);
@@ -61,7 +63,7 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>; // Replace with a skeleton loader later
   }
 
   if (!peerReview) {
@@ -71,83 +73,83 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
   const canReview = user && user.uid !== peerReview.authorId;
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-2">{peerReview.title}</h1>
-      <p className="text-lg text-gray-500 mb-8">Authored by {peerReview.author}</p>
+    <PageLayout>
+      <div className="mb-8 pb-6 border-b-4 border-black/10">
+        <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85]">
+            {peerReview.title}
+        </h1>
+        <p className="text-xl font-bold text-[#2C2C2C]/60 mt-4">Authored by {peerReview.author}</p>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Submission</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{peerReview.submission}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Rubric</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {rubric.map((item) => (
-                <div key={item.id} className="space-y-2">
-                  <p className="font-bold">{item.criterion}</p>
-                  <p className="text-sm text-gray-500">Max score: {item.maxScore}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="lg:col-span-2 space-y-8">
+            <div>
+                <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Submission</h2>
+                <div className="mt-4 p-6 bg-white rounded-lg border-2 border-black">
+                    <p className="text-lg text-black/80 whitespace-pre-wrap">{peerReview.submission}</p>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+            </div>
+
+            {canReview && (
+                <div>
+                    <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Write a Review</h2>
+                    <div className="mt-4 p-6 bg-[#FFC971] rounded-2xl border-4 border-black">
+                        {rubric.map((item) => (
+                        <div key={item.id} className="grid grid-cols-2 items-center gap-4 mb-4">
+                            <p className="font-bold text-lg text-[#2C2C2C]">{item.criterion}</p>
+                            <Input
+                                type="number"
+                                max={item.maxScore}
+                                min={0}
+                                placeholder={`Score (0-${item.maxScore})`}
+                                onChange={(e) => handleScoreChange(item.id, parseInt(e.target.value))}
+                                className="bg-white border-2 border-black text-black font-bold focus:ring-0"
+                            />
+                        </div>
+                        ))}
+                        <Textarea
+                            placeholder="Provide feedback..."
+                            className="mt-4 bg-white border-2 border-black text-black font-bold focus:ring-0"
+                            value={newReviewFeedback}
+                            onChange={(e) => setNewReviewFeedback(e.target.value)}
+                        />
+                        <Button className="mt-4 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" onClick={handleCreateReview}>Submit Review</Button>
+                    </div>
+                </div>
+            )}
+
+            <div>
+                <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Reviews</h2>
+                <div className="mt-4 space-y-6">
+                    {reviews.map((review) => (
+                        <div key={review.id} className="p-6 bg-white rounded-lg border-2 border-black">
+                            <p className="text-lg text-black/80 whitespace-pre-wrap">{review.feedback}</p>
+                            <Separator className="my-4 bg-black/10" />
+                            <div className="space-y-2">
+                                {rubric.map((item) => (
+                                    <p key={item.id} className="font-bold text-md text-[#2C2C2C]"><span className="font-black">{item.criterion}:</span> {review.scores[item.id] || 0}/{item.maxScore}</p>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        <div className="space-y-8">
+            <div>
+                <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Rubric</h2>
+                <div className="mt-4 p-6 bg-[#FFC971] rounded-2xl border-4 border-black space-y-4">
+                    {rubric.map((item) => (
+                        <div key={item.id}>
+                        <p className="text-xl font-black text-[#2C2C2C]">{item.criterion}</p>
+                        <p className="text-lg font-bold text-[#2C2C2C]/60">Max score: {item.maxScore}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
       </div>
-
-      {canReview && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Write a Review</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {rubric.map((item) => (
-              <div key={item.id} className="grid grid-cols-2 items-center gap-4 mb-4">
-                <p>{item.criterion}</p>
-                <Input
-                  type="number"
-                  max={item.maxScore}
-                  min={0}
-                  placeholder={`Score (0-${item.maxScore})`}
-                  onChange={(e) => handleScoreChange(item.id, parseInt(e.target.value))}
-                />
-              </div>
-            ))}
-            <Textarea
-              placeholder="Provide feedback..."
-              className="mt-4"
-              value={newReviewFeedback}
-              onChange={(e) => setNewReviewFeedback(e.target.value)}
-            />
-            <Button className="mt-4" onClick={handleCreateReview}>Submit Review</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="mt-8">
-        <h2 className="text-3xl font-bold mb-4">Reviews</h2>
-        {reviews.map((review) => (
-            <Card key={review.id} className="mb-4">
-                <CardContent className="pt-6">
-                    <p>{review.feedback}</p>
-                    <div className="mt-4">
-                        {rubric.map((item) => (
-                            <p key={item.id}><span className="font-bold">{item.criterion}:</span> {review.scores[item.id] || 0}/{item.maxScore}</p>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-        ))}
-      </div>
-    </div>
+    </PageLayout>
   );
 }

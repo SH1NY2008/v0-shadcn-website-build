@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import questionsData from '../../data/questions.json'
 import { MathText } from '../../components/MathText'
@@ -10,12 +10,22 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, RotateCcw } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, RotateCcw, Calculator, Book, Lightbulb, Pencil, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useQuizSound } from "@/hooks/use-quiz-sound"
 import { useQuizHaptics } from "@/hooks/use-quiz-haptics"
 import { auth, db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { NotebookButton } from "@/components/notebook-button"
+import { awardXP, updateStreak } from '@/lib/gamification'
+import { ReactSketchCanvas, ReactSketchCanvasRef } from "react-sketch-canvas"
+import { usePageVisibility } from '@/hooks/use-page-visibility'
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+
+const CAPITALIZED_CATEGORY_MAP: { [key: string]: string } = {}
 
 export default function QuizCategoryPage() {
   const params = useParams()
@@ -31,14 +41,29 @@ export default function QuizCategoryPage() {
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
+  const [wrongAnswers, setWrongAnswers] = useState<any[]>([])
+    const [visibleHints, setVisibleHints] = useState<string[]>([])
+  const [isHandwritingOpen, setIsHandwritingOpen] = useState(false)
+  const canvasRef = useRef<ReactSketchCanvasRef>(null)
+  const [isProctoring, setIsProctoring] = useState(false)
+  const [proctoringAlerts, setProctoringAlerts] = useState<string[]>([])
+  const isHidden = usePageVisibility()
 
   const { playCorrect, playIncorrect, playComplete } = useQuizSound()
   const { hapticSuccess, hapticError, hapticImpact } = useQuizHaptics()
 
   useEffect(() => {
+    if (isProctoring && isHidden) {
+      setProctoringAlerts([...proctoringAlerts, `Navigated away at ${new Date().toLocaleTimeString()}`])
+    }
+  }, [isHidden, isProctoring]);
+
+  useEffect(() => {
     if (category) {
       const filtered = questionsData.filter((q: any) => q.category === category)
-      setQuestions(filtered)
+      const sorted = filtered.sort(() => Math.random() - 0.5)
+      setQuestions(sorted)
     }
   }, [category])
 
@@ -57,6 +82,25 @@ export default function QuizCategoryPage() {
         percentage: Math.round((finalScore / questions.length) * 100),
         completedAt: serverTimestamp()
       })
+
+      // Gamification
+      await awardXP(user.uid, finalScore * 10)
+      await updateStreak(user.uid)
+
+      // Spaced Repetition
+      const wrongAnswersCollection = collection(db, 'wrong_answers')
+      for (const wrongAnswer of wrongAnswers) {
+        const nextReview = new Date()
+        nextReview.setDate(nextReview.getDate() + 1) // Review in 1 day
+        await addDoc(wrongAnswersCollection, {
+            userId: user.uid,
+            questionId: wrongAnswer.id,
+            nextReview: nextReview,
+            level: 1, // initial level
+        })
+      }
+
+
     } catch (error) {
       console.error("Error saving quiz result:", error)
     } finally {
@@ -79,6 +123,7 @@ export default function QuizCategoryPage() {
       playCorrect()
       hapticSuccess()
     } else {
+      setWrongAnswers([...wrongAnswers, questions[currentQuestionIndex]])
       playIncorrect()
       hapticError()
     }
@@ -86,11 +131,19 @@ export default function QuizCategoryPage() {
     setShowResult(true)
   }
 
+  const handleShowHint = () => {
+    const currentHints = questions[currentQuestionIndex].hints || []
+    if (visibleHints.length < currentHints.length) {
+        setVisibleHints([...visibleHints, currentHints[visibleHints.length]])
+    }
+  }
+
   const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       setSelectedAnswer(null)
       setShowResult(false)
+      setVisibleHints([])
     } else {
       const finalScore = score + (selectedAnswer === questions[currentQuestionIndex].correctAnswer ? 0 : 0) // score is already updated in handleSubmit
       setQuizCompleted(true)
@@ -181,12 +234,74 @@ export default function QuizCategoryPage() {
             
             <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-4 gap-2">
                 <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[#2C2C2C] leading-none">{category}</h1>
-                <span className="text-lg font-bold text-[#2C2C2C]/60 bg-white/50 px-3 py-1 rounded-lg border-2 border-black/5">
-                    Question {currentQuestionIndex + 1} of {questions.length}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <div className="flex items-center gap-2 p-2 rounded-lg border-2 border-black/10 bg-white/50">
+                    <Eye className="h-5 w-5" />
+                    <Label htmlFor="proctoring-mode" className="font-bold text-sm select-none">Proctoring</Label>
+                    <Switch id="proctoring-mode" checked={isProctoring} onCheckedChange={setIsProctoring} />
+                  </div>
+                  <NotebookButton topic={category} />
+                  <Dialog open={isHandwritingOpen} onOpenChange={setIsHandwritingOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="border-2 border-black/10 bg-white/50">
+                        <Pencil className="h-6 w-6" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl">
+                      <DialogHeader>
+                        <DialogTitle>Handwriting Scratchpad</DialogTitle>
+                      </DialogHeader>
+                      <ReactSketchCanvas
+                        ref={canvasRef}
+                        strokeWidth={4}
+                        strokeColor="black"
+                        canvasColor="white"
+                        height="400px"
+                        className="w-full border-2 border-black/10 rounded-lg"
+                      />
+                      <div className="flex justify-end gap-2 mt-4">
+                        <Button variant="outline" onClick={() => canvasRef.current?.clearCanvas()}>Clear</Button>
+                        <Button onClick={() => setIsHandwritingOpen(false)}>Done</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="border-2 border-black/10 bg-white/50">
+                        <Calculator className="h-6 w-6" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl h-3/4">
+                      <DialogHeader>
+                        <DialogTitle>Graphing Calculator</DialogTitle>
+                      </DialogHeader>
+                      <div className="h-full w-full">
+                        <iframe
+                          src="https://www.desmos.com/calculator"
+                          className="h-full w-full border-0"
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <span className="text-lg font-bold text-[#2C2C2C]/60 bg-white/50 px-3 py-1 rounded-lg border-2 border-black/5">
+                      Question {currentQuestionIndex + 1} of {questions.length}
+                  </span>
+                </div>
             </div>
             <Progress value={progress} className="h-4 border-2 border-black/10 bg-white [&>div]:bg-[#006B6B]" />
         </div>
+
+        {isProctoring && proctoringAlerts.length > 0 && (
+            <Alert variant="destructive" className="mb-8">
+                <Eye className="h-4 w-4" />
+                <AlertTitle>Proctoring Alert</AlertTitle>
+                <AlertDescription>
+                    <ul className="list-disc list-inside">
+                        {proctoringAlerts.map((alert, i) => <li key={i}>{alert}</li>)}
+                    </ul>
+                </AlertDescription>
+            </Alert>
+        )}
 
         <div className="mb-8 overflow-hidden rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
             <div className="p-6 md:p-8">
@@ -197,9 +312,17 @@ export default function QuizCategoryPage() {
                 )}
                 <div className="text-xl md:text-2xl leading-relaxed font-bold text-[#2C2C2C] mb-8">
                     <MathText content={currentQuestion.content} />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
+             </div>
+             {visibleHints.map((hint, index) => (
+                <Alert key={index} className="mb-4">
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertTitle>Hint #{index + 1}</AlertTitle>
+                    <AlertDescription>
+                        <MathText content={hint} />
+                    </AlertDescription>
+                </Alert>
+             ))}
+            <div className="grid grid-cols-1 gap-4">
                 {currentQuestion.options.map((option: any) => {
                     const isSelected = selectedAnswer === option.id
                     const isCorrect = option.id === currentQuestion.correctAnswer
@@ -251,19 +374,22 @@ export default function QuizCategoryPage() {
                 })}
                 </div>
             </div>
-            <div className="bg-black/5 p-6 md:p-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-t-4 border-black/10">
-                <div className="text-lg font-black text-[#2C2C2C] uppercase tracking-wide bg-white px-4 py-2 rounded-lg border-2 border-black/10">
-                    Score: {score} / {questions.length}
-                </div>
+              <div className="bg-black/5 p-6 md:p-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-t-4 border-black/10">
+                <Button onClick={handleShowHint} variant="outline" disabled={showResult || visibleHints.length === (questions[currentQuestionIndex].hints || []).length}> <Lightbulb className="h-4 w-4 mr-2" /> Get Hint</Button>
                 {!showResult ? (
-                    <Button 
-                        onClick={handleSubmit} 
-                        disabled={!selectedAnswer}
-                        size="lg"
-                        className="w-full sm:w-auto min-w-[200px] border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-black h-14 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
-                    >
-                        Submit Answer
-                    </Button>
+                    <>
+                        <div className="text-lg font-black text-[#2C2C2C] uppercase tracking-wide bg-white px-4 py-2 rounded-lg border-2 border-black/10">
+                            Score: {score} / {questions.length}
+                        </div>
+                        <Button 
+                            onClick={handleSubmit} 
+                            disabled={!selectedAnswer}
+                            size="lg"
+                            className="w-full sm:w-auto min-w-[200px] border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-black h-14 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
+                        >
+                            Submit Answer
+                        </Button>
+                    </>
                 ) : (
                     <Button 
                         onClick={handleNext} 

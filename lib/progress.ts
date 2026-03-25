@@ -1,46 +1,42 @@
-import { db } from "@/lib/firebase"
-import {
-  doc,
-  setDoc,
-  deleteDoc,
-  getDoc,
-  collection,
-  getDocs,
-  serverTimestamp,
-} from "firebase/firestore"
 
-export async function toggleTopicCompletion(uid: string, courseId: string, videoId: string) {
-  const ref = doc(db, "users", uid, "courses", courseId, "topics", videoId)
-  const snap = await getDoc(ref)
-  if (snap.exists()) {
-    await deleteDoc(ref)
-  } else {
-    await setDoc(ref, { completed: true, completedAt: serverTimestamp() })
-  }
+import { collection, query, where, onSnapshot, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from './firebase';
+
+export interface QuizResult {
+    id: string;
+    category: string;
+    score: number;
+    total: number;
+    createdAt: any;
 }
 
-export async function isTopicCompleted(uid: string, courseId: string, videoId: string) {
-  const ref = doc(db, "users", uid, "courses", courseId, "topics", videoId)
-  const snap = await getDoc(ref)
-  return snap.exists()
+export function onUserQuizResultsUpdate(userId: string, callback: (results: QuizResult[]) => void) {
+    const resultsCollection = collection(db, 'quiz_results');
+    const q = query(resultsCollection, where('userId', '==', userId));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const results = snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() } as QuizResult)
+        );
+        callback(results);
+    });
+
+    return unsubscribe;
 }
 
-export async function getCourseCompletedCount(uid: string, courseId: string) {
-  const ref = collection(db, "users", uid, "courses", courseId, "topics")
-  const snaps = await getDocs(ref)
-  return snaps.size
+export async function isTopicCompleted(userId: string, courseId: string, videoId: string) {
+    const topicRef = doc(db, 'users', userId, 'courses', courseId, 'topics', videoId);
+    const topicSnap = await getDoc(topicRef);
+    return topicSnap.exists();
 }
 
-export async function getUserProgressSummary(uid: string) {
-  const coursesRef = collection(db, "users", uid, "courses")
-  const courseDocs = await getDocs(coursesRef)
-  const courseIds = courseDocs.docs.map((d) => d.id)
-  let topicTotal = 0
-  let topicCompleted = 0
-  for (const courseId of courseIds) {
-    const topicsRef = collection(db, "users", uid, "courses", courseId, "topics")
-    const topics = await getDocs(topicsRef)
-    topicCompleted += topics.size
-  }
-  return { courseIds, topicCompleted, topicTotal }
+export async function toggleTopicCompletion(userId: string, courseId: string, videoId: string) {
+    const topicRef = doc(db, 'users', userId, 'courses', courseId, 'topics', videoId);
+    const topicSnap = await getDoc(topicRef);
+
+    if (topicSnap.exists()) {
+        await deleteDoc(topicRef);
+    } else {
+        await setDoc(topicRef, { completedAt: new Date() });
+    }
 }

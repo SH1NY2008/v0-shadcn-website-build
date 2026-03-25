@@ -22,7 +22,11 @@
         "content": "57"
       }
     ],
-    "correctAnswer": "A"
+    "correctAnswer": "A",
+    "hints": [
+        "The integral of a sum is the sum of the integrals.",
+        "The power rule for integration is \\(\\int x^n dx = \\frac{x^{n+1}}{n+1} + C\\)."
+    ]
   },
   {
     "id": "prob002",
@@ -47,7 +51,12 @@
         "content": "\\(-3\\)"
       }
     ],
-    "correctAnswer": "A"
+    "correctAnswer": "A",
+    "hints": [
+        "To find local minima or maxima, you need to find the critical points of the function.",
+        "Critical points occur where the derivative of the function is zero or undefined.",
+        "Use the second derivative test to determine if a critical point is a local minimum or maximum."
+    ]
   },
   {
     "id": "prob003",

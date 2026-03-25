@@ -1,0 +1,44 @@
+{
+  "Calculus": [
+    {
+      "name": "Power Rule",
+      "formula": "\\( \\frac{d}{dx}x^n = nx^{n-1} \\)"
+    },
+    {
+      "name": "Product Rule",
+      "formula": "\\( \\frac{d}{dx}(uv) = u\\frac{dv}{dx} + v\\frac{du}{dx} \\)"
+    },
+    {
+      "name": "Quotient Rule",
+      "formula": "\\( \\frac{d}{dx}(\\frac{u}{v}) = \\frac{v\\frac{du}{dx} - u\\frac{dv}{dx}}{v^2} \\)"
+    },
+    {
+        "name": "Integration by Parts",
+        "formula": "\\( \\int u dv = uv - \\int v du \\)"
+    }
+  ],
+  "Algebra": [
+    {
+      "name": "Quadratic Formula",
+      "formula": "\\( x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a} \\)"
+    },
+    {
+      "name": "Slope-Intercept Form",
+      "formula": "\\( y = mx + b \\)"
+    }
+  ],
+  "Trigonometry": [
+    {
+        "name": "Pythagorean Identity",
+        "formula": "\\( \\sin^2(\\theta) + \\cos^2(\\theta) = 1 \\)"
+    },
+    {
+        "name": "Law of Sines",
+        "formula": "\\( \\frac{a}{\\sin(A)} = \\frac{b}{\\sin(B)} = \\frac{c}{\\sin(C)} \\)"
+    },
+    {
+        "name": "Law of Cosines",
+        "formula": "\\( c^2 = a^2 + b^2 - 2ab \\cos(C) \\)"
+    }
+  ]
+}

@@ -117,3 +117,12 @@ export async function createAssignment(teacherId: string, assignmentData: Omit<A
   })
   return newAssignmentRef.id
 }
+
+export async function getParentStudents(parentId: string): Promise<string[]> {
+  const parentRef = doc(db, 'parents', parentId)
+  const parentSnap = await getDoc(parentRef)
+  if (parentSnap.exists()) {
+    return parentSnap.data().students || []
+  }
+  return []
+}

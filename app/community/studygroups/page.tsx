@@ -1,6 +1,7 @@
 
 'use client'
 
+import { PageLayout } from "@/components/page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -19,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Users } from "lucide-react";
+import { StudyGroupSkeleton } from "@/components/study-group-skeleton";
 
 export default function StudyGroupsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,51 +59,62 @@ export default function StudyGroupsPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <PageLayout>
+        <div className="flex justify-between items-center mb-8 border-b-4 border-black/10 pb-6">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85]">
+            Study Groups
+          </h1>
+        </div>
+        <StudyGroupSkeleton />
+      </PageLayout>
+    );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Study Groups</h1>
+    <PageLayout>
+      <div className="flex justify-between items-center mb-8 border-b-4 border-black/10 pb-6">
+        <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85]">
+          Study Groups
+        </h1>
         {user && (
           <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
             <DialogTrigger asChild>
-              <Button>Create New Group</Button>
+              <Button className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Create New Group</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-[#FFC971] border-4 border-black">
               <DialogHeader>
-                <DialogTitle>Create a new study group</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Create a new study group</DialogTitle>
+                <DialogDescription className="text-lg font-bold text-[#2C2C2C]/60">
                   Fill in the details below to create a new study group.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="title" className="text-right">
+                  <Label htmlFor="title" className="text-right font-bold text-lg text-[#2C2C2C]">
                     Title
                   </Label>
                   <Input
                     id="title"
                     value={newGroupTitle}
                     onChange={(e) => setNewGroupTitle(e.target.value)}
-                    className="col-span-3"
+                    className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
+                  <Label htmlFor="description" className="text-right font-bold text-lg text-[#2C2C2C]">
                     Description
                   </Label>
                   <Input
                     id="description"
                     value={newGroupDescription}
                     onChange={(e) => setNewGroupDescription(e.target.value)}
-                    className="col-span-3"
+                    className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleCreateGroup}>Create</Button>
+                <Button onClick={handleCreateGroup} className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Create</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -109,18 +123,28 @@ export default function StudyGroupsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {studyGroups.map((group) => (
           <Link href={`/community/studygroups/${group.id}`} key={group.id}>
-            <Card>
-              <CardHeader>
-                <CardTitle>{group.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>{group.description}</p>
-                <p className="text-sm text-gray-500 mt-4">{group.members.length} members</p>
-              </CardContent>
-            </Card>
+            <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
+                <div>
+                    <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+                        {group.title}
+                    </h3>
+                    <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">
+                        {group.description}
+                    </p>
+                </div>
+                <div className="flex items-center justify-between mt-6">
+                    <div className="flex items-center space-x-2">
+                        <Users className="w-6 h-6 text-[#006B6B]" />
+                        <span className="font-bold text-lg text-[#006B6B]">{group.members.length} members</span>
+                    </div>
+                    <Button className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        View Group
+                    </Button>
+                </div>
+            </div>
           </Link>
         ))}
       </div>
-    </div>
+    </PageLayout>
   );
 }

@@ -1,6 +1,7 @@
 
 'use client'
 
+import { PageLayout } from "@/components/page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -20,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PeerReviewSkeleton } from "@/components/peer-review-skeleton";
 
 export default function PeerReviewPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -80,47 +82,58 @@ export default function PeerReviewPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <PageLayout>
+        <div className="flex justify-between items-center mb-8 border-b-4 border-black/10 pb-6">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85]">
+            Peer Review
+          </h1>
+        </div>
+        <PeerReviewSkeleton />
+      </PageLayout>
+    );
   }
 
   return (
-    <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold">Peer Review</h1>
+    <PageLayout>
+        <div className="flex justify-between items-center mb-8 border-b-4 border-black/10 pb-6">
+            <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85]">
+                Peer Review
+            </h1>
             {user && (
                 <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button>Submit for Review</Button>
+                        <Button className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Submit for Review</Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[625px]">
+                    <DialogContent className="bg-[#FFC971] border-4 border-black sm:max-w-[625px]">
                         <DialogHeader>
-                        <DialogTitle>Submit for Peer Review</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Submit for Peer Review</DialogTitle>
+                        <DialogDescription className="text-lg font-bold text-[#2C2C2C]/60">
                             Fill in the details below to submit your work for peer review.
                         </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="title" className="text-right">Title</Label>
-                                <Input id="title" value={newReviewTitle} onChange={(e) => setNewReviewTitle(e.target.value)} className="col-span-3" />
+                                <Label htmlFor="title" className="text-right font-bold text-lg text-[#2C2C2C]">Title</Label>
+                                <Input id="title" value={newReviewTitle} onChange={(e) => setNewReviewTitle(e.target.value)} className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="submission" className="text-right">Submission</Label>
-                                <Textarea id="submission" value={newReviewSubmission} onChange={(e) => setNewReviewSubmission(e.target.value)} className="col-span-3" />
+                                <Label htmlFor="submission" className="text-right font-bold text-lg text-[#2C2C2C]">Submission</Label>
+                                <Textarea id="submission" value={newReviewSubmission} onChange={(e) => setNewReviewSubmission(e.target.value)} className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0" />
                             </div>
                             <div>
-                                <h3 className="font-bold mb-2">Rubric</h3>
+                                <h3 className="font-bold text-lg text-[#2C2C2C] mb-2">Rubric</h3>
                                 {rubricItems.map((item, index) => (
                                     <div key={index} className="grid grid-cols-5 items-center gap-2 mb-2">
-                                        <Input placeholder="Criterion" value={item.criterion} onChange={(e) => handleRubricItemChange(index, 'criterion', e.target.value)} className="col-span-3" />
-                                        <Input type="number" placeholder="Max Score" value={item.maxScore} onChange={(e) => handleRubricItemChange(index, 'maxScore', e.target.value)} className="col-span-2" />
+                                        <Input placeholder="Criterion" value={item.criterion} onChange={(e) => handleRubricItemChange(index, 'criterion', e.target.value)} className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0" />
+                                        <Input type="number" placeholder="Max Score" value={item.maxScore} onChange={(e) => handleRubricItemChange(index, 'maxScore', e.target.value)} className="col-span-2 bg-white border-2 border-black text-black font-bold focus:ring-0" />
                                     </div>
                                 ))}
-                                <Button onClick={handleAddRubricItem} variant="outline">Add Rubric Item</Button>
+                                <Button onClick={handleAddRubricItem} variant="outline" className="w-full border-2 border-black bg-transparent text-black font-bold hover:bg-black/10">Add Rubric Item</Button>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleCreatePeerReview}>Submit</Button>
+                            <Button onClick={handleCreatePeerReview} className="w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Submit</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -128,20 +141,26 @@ export default function PeerReviewPage() {
         </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {peerReviews.map((assignment) => (
-            <Card key={assignment.id}>
-              <CardHeader>
-                <CardTitle>{assignment.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Author: {assignment.author}</p>
-                <p>Status: {assignment.status}</p>
-                <Link href={`/community/peerreview/${assignment.id}`}>
-                  <Button className="mt-4">Start Review</Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <Link href={`/community/peerreview/${assignment.id}`} key={assignment.id}>
+                <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
+                    <div>
+                        <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+                            {assignment.title}
+                        </h3>
+                        <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">
+                            Author: {assignment.author}
+                        </p>
+                        <p className="text-lg font-bold text-[#2C2C2C]/60">
+                            Status: {assignment.status}
+                        </p>
+                    </div>
+                    <Button className="mt-8 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        Start Review
+                    </Button>
+                </div>
+            </Link>
         ))}
       </div>
-    </div>
+    </PageLayout>
   );
 }

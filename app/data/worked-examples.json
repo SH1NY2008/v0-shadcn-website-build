@@ -1,0 +1,43 @@
+[
+  {
+    "id": "ex001",
+    "title": "Find the derivative of f(x) = 3x^2 + 2x - 5",
+    "category": "Calculus",
+    "problem": "<p>Given the function \\(f(x) = 3x^2 + 2x - 5\\), find the derivative \\(f'(x)\\).</p>",
+    "solution": [
+      {
+        "step": 1,
+        "title": "Apply the Power Rule",
+        "explanation": "<p>The power rule states that the derivative of \\(x^n\\) is \\(nx^{n-1}\\). We apply this to each term in the polynomial.</p>"
+      },
+      {
+        "step": 2,
+        "title": "Differentiate Each Term",
+        "explanation": "<p>For the first term, \\(3x^2\\), the derivative is \\(3 \\cdot 2x^{2-1} = 6x\\).<br>For the second term, \\(2x\\), the derivative is \\(2 \\cdot 1x^{1-1} = 2\\).<br>The derivative of a constant, -5, is 0.</p>"
+      },
+      {
+        "step": 3,
+        "title": "Combine the Results",
+        "explanation": "<p>Summing the derivatives of each term gives us the final answer: \\(f'(x) = 6x + 2\\).</p>"
+      }
+    ]
+  },
+  {
+    "id": "ex002",
+    "title": "Solve the linear equation 2x + 3 = 11",
+    "category": "Algebra",
+    "problem": "<p>Find the value of x that satisfies the equation \\(2x + 3 = 11\\).</p>",
+    "solution": [
+      {
+        "step": 1,
+        "title": "Isolate the variable term",
+        "explanation": "<p>To get the term with x by itself, subtract 3 from both sides of the equation: \\(2x + 3 - 3 = 11 - 3\\), which simplifies to \\(2x = 8\\).</p>"
+      },
+      {
+        "step": 2,
+        "title": "Solve for x",
+        "explanation": "<p>Now, divide both sides by 2 to solve for x: \\(2x / 2 = 8 / 2\\), which gives \\(x = 4\\).</p>"
+      }
+    ]
+  }
+]

@@ -8,14 +8,14 @@ import { onAuthStateChanged } from "firebase/auth"
 interface TeacherModeContextType {
   isTeacherMode: boolean
   setIsTeacherMode: (value: boolean) => void
-  userRole: "teacher" | "student" | null
+  userRole: "teacher" | "student" | "parent" | null
 }
 
 const TeacherModeContext = createContext<TeacherModeContextType | undefined>(undefined)
 
 export function TeacherModeProvider({ children }: { children: React.ReactNode }) {
   const [isTeacherMode, setIsTeacherMode] = useState(false)
-  const [userRole, setUserRole] = useState<"teacher" | "student" | null>(null)
+  const [userRole, setUserRole] = useState<"teacher" | "student" | "parent" | null>(null)
 
   // Listen to Auth and Firestore role
   useEffect(() => {
