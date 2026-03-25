@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Menu, LayoutDashboard, Calendar, BookOpen, GraduationCap, LogOut } from "lucide-react"
+import { Menu, LayoutDashboard, Calendar, BookOpen, GraduationCap, LogOut, Users } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -24,6 +24,7 @@ export function DashboardHeader() {
     { href: "/schedule", label: isTeacherMode ? "Office Hours" : "Schedule", icon: Calendar },
     { href: "/resources", label: "Resources", icon: BookOpen },
     { href: "/quizzes", label: isTeacherMode ? "Assignments" : "Quizzes", icon: GraduationCap },
+    { href: "/community", label: "Community", icon: Users },
   ]
 
   const handleSignOut = async () => {

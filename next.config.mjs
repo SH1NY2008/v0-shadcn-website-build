@@ -83,6 +83,7 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: import.meta.url.startsWith('file:') ? new URL(import.meta.url).pathname.split('/.next')[0] : undefined,
   typescript: {
     ignoreBuildErrors: true,
   },
