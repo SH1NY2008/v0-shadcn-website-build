@@ -38,8 +38,8 @@ const PostItem = ({ post, onReply, onDelete, onTogglePin, onVote, isReply = fals
     onVote('downvote');
   };
 
-  const upvoted = !!(userId && post.upvotedBy.includes(userId));
-  const downvoted = !!(userId && post.downvotedBy.includes(userId));
+  const upvoted = !!(userId && (post.upvotedBy || []).includes(userId));
+  const downvoted = !!(userId && (post.downvotedBy || []).includes(userId));
 
   const PinnedComponent = () => (
     <div className="absolute -left-4 -top-3">
@@ -235,7 +235,7 @@ export default function DiscussionThreadPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             {posts.map((post) => (
               <div key={post.id} className="last:border-b-0">
                 <PostItem post={post} onReply={setReplyingTo} onDelete={() => setDeleteTarget({postId: post.id})} onTogglePin={handleTogglePin} userRole={userRole} onVote={(voteType) => handleVote(post.id, null, voteType)} userId={user?.uid || null} />
@@ -262,9 +262,13 @@ export default function DiscussionThreadPage({ params }: { params: Promise<{ id:
                      </div>
                   </div>
                 )}
-                {post.replies && post.replies.map((reply) => (
-                  <PostItem key={reply.id} post={reply} onReply={setReplyingTo} onDelete={() => setDeleteTarget({postId: post.id, replyId: reply.id})} isReply userRole={userRole} onTogglePin={handleTogglePin} onVote={(voteType) => handleVote(post.id, reply.id, voteType)} userId={user?.uid || null} />
-                ))}
+                {post.replies && (
+                  <div className="mt-6 space-y-6">
+                    {post.replies.map((reply) => (
+                      <PostItem key={reply.id} post={reply} onReply={setReplyingTo} onDelete={() => setDeleteTarget({postId: post.id, replyId: reply.id})} isReply userRole={userRole} onTogglePin={handleTogglePin} onVote={(voteType) => handleVote(post.id, reply.id, voteType)} userId={user?.uid || null} />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

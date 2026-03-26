@@ -6,6 +6,7 @@ import { auth, db } from "@/lib/firebase"
 import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { useTeacherMode } from "@/context/teacher-mode-context"
+import { getTeacherClasses } from "@/lib/teacher"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -37,26 +38,42 @@ export default function RosterPage() {
   useEffect(() => {
     if (!user || userRole !== "teacher") return
 
-    // In a real app, you'd fetch students enrolled in the teacher's classes
-    // For now, we'll fetch all users with the "student" role
-    const q = query(
-      collection(db, "users"),
-      where("role", "==", "student")
-    )
+    const fetchStudents = async () => {
+      setLoading(true)
+      try {
+        const teacherClasses = await getTeacherClasses(user.uid)
+        const studentUids = teacherClasses.flatMap(c => c.students)
 
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(doc => ({
-        uid: doc.id,
-        ...doc.data()
-      })) as Student[]
-      setStudents(data)
-      setLoading(false)
-    }, (error) => {
-      console.error("Error listening to student roster:", error)
-      setLoading(false)
-    })
+        if (studentUids.length === 0) {
+          setStudents([])
+          setLoading(false)
+          return
+        }
 
-    return () => unsub()
+        // Batch queries in chunks of 30
+        const studentChunks = [];
+        for (let i = 0; i < studentUids.length; i += 30) {
+          studentChunks.push(studentUids.slice(i, i + 30));
+        }
+
+        const studentPromises = studentChunks.map(chunk => 
+          getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
+        );
+
+        const studentSnapshots = await Promise.all(studentPromises);
+        const studentData = studentSnapshots.flatMap(snap => 
+          snap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as Student))
+        );
+
+        setStudents(studentData)
+      } catch (error) {
+        console.error("Error fetching student roster:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStudents()
   }, [user, userRole])
 
   if (userRole !== "teacher") {

@@ -26,6 +26,8 @@ export interface ClassData {
   studentCount: number
   avgProgress: number
   period: string
+  classCode: string
+  students: string[]
 }
 
 export interface Assignment {
@@ -72,7 +74,7 @@ export function subscribeToTeacherStats(teacherId: string, callback: (stats: any
     let totalProgress = 0
     const classes = snapshot.docs.map(doc => {
       const data = doc.data()
-      totalStudents += data.studentCount || 0
+      totalStudents += data.students?.length || 0
       totalProgress += data.avgProgress || 0
       return { id: doc.id, ...data }
     })
@@ -94,14 +96,20 @@ export function subscribeToTeacherStats(teacherId: string, callback: (stats: any
   })
 }
 
-export async function createClass(teacherId: string, classData: Omit<ClassData, "id">) {
+export async function createClass(teacherId: string, classData: Omit<ClassData, "id" | "classCode" | "students">) {
   const classesRef = collection(db, "classes")
   const newClassRef = doc(classesRef)
+
+  // Generate a random 6-character code
+  const classCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
   await setDoc(newClassRef, {
     ...classData,
     teacherId,
     id: newClassRef.id,
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
+    classCode,
+    students: []
   })
   return newClassRef.id
 }
@@ -116,6 +124,27 @@ export async function createAssignment(teacherId: string, assignmentData: Omit<A
     createdAt: serverTimestamp()
   })
   return newAssignmentRef.id
+}
+
+export async function getStudentsForClass(studentUids: string[]) {
+  if (!studentUids || studentUids.length === 0) {
+    return [];
+  }
+
+  // Firestore 'in' queries are limited to 30 elements
+  const studentChunks = [];
+  for (let i = 0; i < studentUids.length; i += 30) {
+    studentChunks.push(studentUids.slice(i, i + 30));
+  }
+
+  const studentPromises = studentChunks.map(chunk => 
+    getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
+  );
+
+  const studentSnapshots = await Promise.all(studentPromises);
+  const students = studentSnapshots.flatMap(snap => snap.docs.map(doc => doc.data()));
+
+  return students;
 }
 
 export async function getParentStudents(parentId: string): Promise<string[]> {

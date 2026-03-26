@@ -1,7 +1,7 @@
 "use client"
 
 import { PageLayout } from "@/components/page-layout"
-import { CommunitySection } from "@/app/community/CommunitySection";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Calendar, Clock, TrendingUp, Award, BookOpen, Target, FunctionSquare, T
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
-import { collection, getDocs, query, where, onSnapshot } from "firebase/firestore"
+import { collection, getDocs, query, where, onSnapshot, doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
 import questionsData from "../data/questions.json"
@@ -18,7 +18,8 @@ import Link from "next/link"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useTeacherMode } from "@/context/teacher-mode-context"
 import { Users, FileText, Settings, Plus, LayoutDashboard } from "lucide-react"
-import { subscribeToTeacherStats, ClassData, createClass } from "@/lib/teacher"
+import { subscribeToTeacherStats, ClassData, createClass, getStudentsForClass } from "@/lib/teacher"
+import { joinClassWithCode, subscribeToStudentClasses } from "@/lib/student"
 import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
 import { 
   Dialog, 
@@ -40,6 +41,13 @@ export default function DashboardPage() {
   const [newClassName, setNewClassName] = useState("")
   const [newClassPeriod, setNewClassPeriod] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [newlyCreatedClass, setNewlyCreatedClass] = useState<ClassData | null>(null)
+  const [joinClassCode, setJoinClassCode] = useState("")
+  const [isJoining, setIsJoining] = useState(false)
+  const [studentClasses, setStudentClasses] = useState<ClassData[]>([])
+  const [selectedClass, setSelectedClass] = useState<ClassData | null>(null)
+  const [classRoster, setClassRoster] = useState<any[]>([])
+  const [isRosterLoading, setIsRosterLoading] = useState(false)
   
   const [studyHours, setStudyHours] = useState<number>(0)
   const [activeCourses, setActiveCourses] = useState<number>(0)
@@ -77,19 +85,66 @@ export default function DashboardPage() {
     }
   }, [isTeacherMode, user])
 
+  const handleViewRoster = async (classData: ClassData) => {
+    setSelectedClass(classData)
+    if (classData.students && classData.students.length > 0) {
+      setIsRosterLoading(true)
+      const students = await getStudentsForClass(classData.students)
+      setClassRoster(students)
+      setIsRosterLoading(false)
+    } else {
+      setClassRoster([])
+    }
+  }
+
+  useEffect(() => {
+    if (user && !isTeacherMode) {
+      const unsub = subscribeToStudentClasses(user.uid, (classes) => {
+        setStudentClasses(classes)
+      })
+      return () => unsub()
+    }
+  }, [isTeacherMode, user])
+
+  const handleJoinClass = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !joinClassCode) return
+
+    setIsJoining(true)
+    try {
+      const result = await joinClassWithCode(user.uid, joinClassCode)
+      if (result) {
+        toast.success(`Successfully joined class: ${result.name}`)
+        setJoinClassCode("")
+      } else {
+        toast.error("Invalid class code. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error joining class:", error)
+      toast.error("Failed to join class")
+    } finally {
+      setIsJoining(false)
+    }
+  }
+
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !newClassName || !newClassPeriod) return
     
     setIsCreating(true)
     try {
-      await createClass(user.uid, {
+      const newClassId = await createClass(user.uid, {
         name: newClassName,
         period: newClassPeriod,
         studentCount: 0,
         avgProgress: 0,
         teacherId: user.uid
       })
+      const newClassRef = doc(db, "classes", newClassId)
+      const newClassSnap = await getDoc(newClassRef)
+      if (newClassSnap.exists()) {
+        setNewlyCreatedClass(newClassSnap.data() as ClassData)
+      }
       setIsCreateClassOpen(false)
       setNewClassName("")
       setNewClassPeriod("")
@@ -200,8 +255,8 @@ export default function DashboardPage() {
           <span className="text-[#006B6B]">{name}</span>
         </h1>
         <p className="text-xl md:text-3xl font-bold text-[#2C2C2C]/60 max-w-2xl leading-tight">
-          {isTeacherMode 
-            ? "Manage your classes and track student performance" 
+          {isTeacherMode
+            ? "Manage your classes and track student performance"
             : "Track your progress in high school mathematics"}
         </p>
       </div>
@@ -246,21 +301,11 @@ export default function DashboardPage() {
                 teacherData.classes.length > 0 ? (
                   teacherData.classes.map((cls, i) => (
                     <ScrollReveal key={cls.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
-                      <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
+                      <div onClick={() => handleViewRoster(cls)} className="cursor-pointer h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{cls.name}</h4>
-                            <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
-                              {cls.avgProgress}%
-                            </Badge>
-                          </div>
-                          <p className="text-sm font-bold text-[#2C2C2C]/60 mb-4 leading-snug">{cls.studentCount} Students enrolled</p>
-                        </div>
-                        <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-[#006B6B]" 
-                            style={{ width: `${cls.avgProgress}%` }}
-                          />
+                          <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{cls.name}</h4>
+                          <p className="text-sm font-bold text-[#006B6B] mt-1">{cls.period}</p>
+                          <p className="text-sm font-bold text-[#2C2C2C]/60 mt-4 leading-snug">{cls.students.length} Students enrolled</p>
                         </div>
                       </div>
                     </ScrollReveal>
@@ -272,27 +317,23 @@ export default function DashboardPage() {
                   </div>
                 )
               ) : (
-                curriculum.map((course, i) => (
-                  <ScrollReveal key={course.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
-                    <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{course.name}</h4>
-                          <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
-                            {coursePercents[course.id] ?? 0}%
-                          </Badge>
+                studentClasses.length > 0 ? (
+                  studentClasses.map((cls, i) => (
+                    <ScrollReveal key={cls.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
+                      <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md">
+                        <div>
+                          <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{cls.name}</h4>
+                          <p className="text-sm font-bold text-[#006B6B] mt-1">{cls.period}</p>
                         </div>
-                        <p className="text-sm font-bold text-[#2C2C2C]/60 mb-4 leading-snug">Master the fundamentals of {course.name}</p>
                       </div>
-                      <div className="h-3 w-full bg-black/10 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-[#006B6B]" 
-                          style={{ width: `${coursePercents[course.id] ?? 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  </ScrollReveal>
-                ))
+                    </ScrollReveal>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-12 bg-white/20 rounded-2xl border-2 border-dashed border-black/10">
+                    <p className="font-bold text-[#2C2C2C]/60 uppercase tracking-widest">No classes joined</p>
+                    <p className="text-sm text-[#006B6B] font-bold mt-1">Join a class to get started!</p>
+                  </div>
+                )
               )}
             </div>
 
@@ -346,11 +387,35 @@ export default function DashboardPage() {
                 </DialogContent>
               </Dialog>
             ) : (
-              <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
-                <Link href="/resources">
-                  View All Courses
-                </Link>
-              </Button>
+              <>
+                <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
+                  <Link href="/resources">
+                    View All Courses
+                  </Link>
+                </Button>
+
+                <div className="pt-8 mt-8 border-t-4 border-black/10">
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Join a Class</h2>
+                    <p className="text-[#006B6B] font-bold text-lg mt-1">Enter the code from your teacher to join a class.</p>
+                  </div>
+                  <form onSubmit={handleJoinClass} className="flex gap-4">
+                    <Input 
+                      placeholder="Enter class code"
+                      value={joinClassCode}
+                      onChange={(e) => setJoinClassCode(e.target.value)}
+                      className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold"
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={isJoining}
+                      className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      {isJoining ? "Joining..." : "Join"}
+                    </Button>
+                  </form>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -446,7 +511,71 @@ export default function DashboardPage() {
         </div>
 
       </div>
-      <CommunitySection />
+      <Dialog open={!!newlyCreatedClass} onOpenChange={() => setNewlyCreatedClass(null)}>
+          <DialogContent className="bg-[#FFC971] border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Class Created!</DialogTitle>
+              <DialogDescription className="text-[#006B6B] font-bold">
+                Share this code with your students to let them join the class.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-center text-4xl font-black text-[#006B6B] bg-white/40 rounded-lg py-4">{newlyCreatedClass?.classCode}</p>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => setNewlyCreatedClass(null)}
+                className="w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!selectedClass} onOpenChange={() => setSelectedClass(null)}>
+          <DialogContent className="bg-[#FFC971] border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">{selectedClass?.name}</DialogTitle>
+              <DialogDescription className="text-[#006B6B] font-bold">
+                {selectedClass?.period} - {selectedClass?.students.length} students enrolled
+              </DialogDescription>
+              <div className="pt-4">
+                <p className="text-sm font-black text-[#2C2C2C]/60 uppercase tracking-widest">Class Code</p>
+                <p className="text-2xl font-black text-[#006B6B] bg-white/40 rounded-lg py-2 text-center mt-1">{selectedClass?.classCode}</p>
+              </div>
+            </DialogHeader>
+            <div className="py-4 max-h-[60vh] overflow-y-auto">
+              {isRosterLoading ? (
+                <div className="text-center animate-pulse">
+                  <p className="text-lg font-bold text-[#2C2C2C]/60">Loading students...</p>
+                </div>
+              ) : classRoster.length > 0 ? (
+                <ul className="space-y-3">
+                  {classRoster.map((student) => (
+                    <li key={student.uid} className="flex items-center justify-between bg-white/30 p-3 rounded-lg">
+                      <span className="font-bold text-[#2C2C2C]">{student.displayName}</span>
+                      <span className="text-sm text-[#006B6B]">{student.email}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="font-bold text-[#2C2C2C]/60 uppercase tracking-widest">No students enrolled</p>
+                  <p className="text-sm text-[#006B6B] font-bold mt-1">Share the class code to get students to join!</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => setSelectedClass(null)}
+                className="w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </PageLayout>
   )
 }

@@ -86,6 +86,20 @@ export async function getTopics(): Promise<Topic[]> {
   return topicList;
 }
 
+export function onTopicsUpdate(callback: (topics: Topic[]) => void) {
+  const topicsCol = collection(db, "topics");
+  const unsubscribe = onSnapshot(topicsCol, (snapshot) => {
+    const topicList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+    callback(topicList);
+  });
+  return unsubscribe;
+}
+
+export async function deleteTopic(topicId: string) {
+  const topicRef = doc(db, "topics", topicId);
+  await deleteDoc(topicRef);
+}
+
 export async function createTopic(topic: Omit<Topic, 'id'>) {
   const topicsCol = collection(db, "topics");
   await addDoc(topicsCol, topic);
