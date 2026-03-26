@@ -100,6 +100,18 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
               >
                 Resources
               </Link>
+              <Link
+                href="/community"
+                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
+              >
+                Community
+              </Link>
+              <Link
+                href="/chat"
+                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
+              >
+                Chat
+              </Link>
               {!user && null}
             </div>
           </SheetContent>
@@ -128,6 +140,18 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
           className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
         >
           Quizzes
+        </Link>
+        <Link 
+          href="/community" 
+          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
+        >
+          Community
+        </Link>
+        <Link 
+          href="/chat" 
+          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
+        >
+          Chat
         </Link>
       </motion.div>
 
