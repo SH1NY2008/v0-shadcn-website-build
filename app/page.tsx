@@ -253,6 +253,7 @@ export default function LandingPage() {
               <Link href="#" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="#" className="hover:text-foreground transition-colors">Terms</Link>
               <Link href="#" className="hover:text-foreground transition-colors">Contact</Link>
+              <Link href="/works-cited" className="hover:text-foreground transition-colors">Works Cited</Link>
             </div>
           </div>
         </footer>

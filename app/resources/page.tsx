@@ -44,6 +44,91 @@ const OPENSTAX_RESOURCES = [
     url: "https://assets.openstax.org/oscms-prodcms/media/documents/Calculus_Volume_2_-_WEB.pdf",
     description: "Calculus Volume 2 (OpenStax)",
   },
+  {
+    title: "Introductory Statistics 2e",
+    url: "https://openstax.org/details/books/introductory-statistics-2e",
+    description: "Introductory Statistics 2e (OpenStax)",
+  },
+  {
+    title: "University Physics Vol 1",
+    url: "https://openstax.org/details/books/university-physics-volume-1",
+    description: "University Physics Vol 1 (OpenStax)",
+  },
+  {
+    title: "University Physics Vol 2",
+    url: "https://openstax.org/details/books/university-physics-volume-2",
+    description: "University Physics Vol 2 (OpenStax)",
+  },
+  {
+    title: "University Physics Vol 3",
+    url: "https://openstax.org/details/books/university-physics-volume-3",
+    description: "University Physics Vol 3 (OpenStax)",
+  },
+  {
+    title: "Chemistry 2e",
+    url: "https://openstax.org/details/books/chemistry-2e",
+    description: "Chemistry 2e (OpenStax)",
+  },
+  {
+    title: "Biology 2e",
+    url: "https://openstax.org/details/books/biology-2e",
+    description: "Biology 2e (OpenStax)",
+  },
+  {
+    title: "Environmental Science",
+    url: "https://openstax.org/details/books/introduction-environmental-science",
+    description: "Environmental Science (OpenStax)",
+  },
+  {
+    title: "Think Java",
+    url: "https://greenteapress.com/wp/think-java-2e/",
+    description: "Think Java (Green Tea Press)",
+  },
+  {
+    title: "CS Principles",
+    url: "https://studio.code.org/courses/csp",
+    description: "CS Principles (Code.org)",
+  },
+  {
+    title: "AP US History",
+    url: "https://openstax.org/details/books/us-history",
+    description: "American History (OpenStax)",
+  },
+  {
+    title: "AP World History",
+    url: "https://library.oapen.org/handle/20.500.12657/25960",
+    description: "World History: Cultures, States & Societies",
+  },
+  {
+    title: "AP European History",
+    url: "https://courses.lumenlearning.com/suny-hccc-worldhistory2/",
+    description: "Western Civilization (Lumen Learning)",
+  },
+  {
+    title: "AP US Government",
+    url: "https://openstax.org/details/books/american-government-3e",
+    description: "American Government 3e (OpenStax)",
+  },
+  {
+    title: "AP Comparative Government",
+    url: "https://open.umn.edu/opentextbooks/textbooks/comparative-politics",
+    description: "Comparative Politics (open.umn.edu)",
+  },
+  {
+    title: "AP Macroeconomics",
+    url: "https://openstax.org/details/books/principles-macroeconomics-3e",
+    description: "Principles of Macroeconomics 3e (OpenStax)",
+  },
+  {
+    title: "AP Microeconomics",
+    url: "https://openstax.org/details/books/principles-microeconomics-3e",
+    description: "Principles of Microeconomics 3e (OpenStax)",
+  },
+  {
+    title: "AP Psychology",
+    url: "https://openstax.org/details/books/psychology-2e",
+    description: "Psychology 2e (OpenStax)",
+  },
 ]
 
 export default function ResourcesPage() {
@@ -83,6 +168,23 @@ export default function ResourcesPage() {
         <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
           Curated learning materials organized by course and unit.
         </p>
+      </div>
+
+      <div className="mb-12">
+        <h2 className="text-4xl font-black tracking-tighter text-[#2C2C2C] uppercase mb-6">Textbooks</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {OPENSTAX_RESOURCES.map((resource, index) => (
+            <a href={resource.url} target="_blank" rel="noopener noreferrer" key={index} className="block p-6 rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.1)]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-[#2C2C2C] leading-tight">{resource.title}</h3>
+              </div>
+              <p className="text-sm font-medium text-[#2C2C2C]/60">{resource.description}</p>
+            </a>
+          ))}
+        </div>
       </div>
 
       <Accordion type="multiple" className="space-y-6">

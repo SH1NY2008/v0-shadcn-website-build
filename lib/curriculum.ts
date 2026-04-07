@@ -195,7 +195,7 @@ export const curriculum: Course[] = [
   },
   {
     id: "algebra-2",
-    name: "Algebra 2 with Trigonometry",
+    name: "Alg 2/Trig",
     units: [
       {
         name: "Unit 1: Review of Algebra 1",
@@ -395,7 +395,7 @@ export const curriculum: Course[] = [
   },
   {
     id: "calculus-1",
-    name: "Calculus 1 (AP Calc AB)",
+    name: "Calculus 1",
     units: [
       {
         name: "Unit 1: Limits and Continuity",
@@ -474,7 +474,7 @@ export const curriculum: Course[] = [
   },
   {
     id: "calculus-2",
-    name: "Calculus 2 (AP Calc BC)",
+    name: "Calculus 2",
     units: [
       {
         name: "Unit 1: Review of Calculus AB Topics",
@@ -528,6 +528,191 @@ export const curriculum: Course[] = [
           { name: "Logistic differential equations", videoId: "1_XdiFR_Boc" },
           { name: "Euler's method for approximating solutions", videoId: "q87L9R9v274" },
           { name: "L'Hôpital's Rule (extended cases)", videoId: "YCCQ3oClNiU" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "calculus-3",
+    name: "Calculus 3",
+    units: [
+      {
+        name: "Unit 1: Review of Calculus AB Topics",
+        topics: [
+          { name: "Limits, derivatives, and integrals", videoId: "3Ym5CiLVkBI" },
+          { name: "Applications and problem-solving", videoId: "dkAQ2YCX-UM" },
+        ],
+      },
+      {
+        name: "Unit 2: Parametric Equations, Polar Coordinates, and Vector-Valued Functions",
+        topics: [
+          { name: "Parametric equations and calculus", videoId: "rR0lNrfwWEk" },
+          { name: "Arc length and surface area (parametric)", videoId: "i_lUFWSkxow" },
+          { name: "Polar coordinates and graphing", videoId: "MkBGQdFwjcc" },
+          { name: "Calculus with polar functions (area, arc length)", videoId: "2CKwAXpNOJY" },
+          { name: "Vector-valued functions and motion", videoId: "8yV92eZ-1I0" },
+        ],
+      },
+      {
+        name: "Unit 3: Series",
+        topics: [
+          { name: "Sequences and convergence", videoId: "Kq0cJW5e0hA" },
+          { name: "Infinite series and convergence tests", videoId: "c_Dq7xKJmRo" },
+          { name: "Geometric and p-series", videoId: "Seb8R0Y-D1s" },
+          { name: "Comparison tests (direct and limit)", videoId: "5EUBePCQ-Yg" },
+          { name: "Ratio and root tests", videoId: "axbodJZvlZ0" },
+          { name: "Alternating series and absolute convergence", videoId: "9kKHYrI3fAY" },
+        ],
+      },
+      {
+        name: "Unit 4: Taylor and Maclaurin Series",
+        topics: [
+          { name: "Power series and radius of convergence", videoId: "vy9kPIqPAlA" },
+          { name: "Taylor and Maclaurin polynomials", videoId: "3d6DsjIBzJ4" },
+          { name: "Taylor series representations", videoId: "sRkRWNVDHMQ" },
+          { name: "Lagrange error bound", videoId: "S4ffNW-z4Hk" },
+        ],
+      },
+      {
+        name: "Unit 5: Advanced Integration Techniques",
+        topics: [
+          { name: "Integration by parts", videoId: "2I-_SV8cwsw" },
+          { name: "Partial fraction decomposition", videoId: "cqz5HzhBcBU" },
+          { name: "Improper integrals", videoId: "oOkNDHFEWVw" },
+          { name: "Numerical integration (trapezoidal and Simpson's rule)", videoId: "RTX-ik_8OHo" },
+        ],
+      },
+      {
+        name: "Unit 6: Additional BC Topics",
+        topics: [
+          { name: "Logistic differential equations", videoId: "1_XdiFR_Boc" },
+          { name: "Euler's method for approximating solutions", videoId: "q87L9R9v274" },
+          { name: "L'Hôpital's Rule (extended cases)", videoId: "YCCQ3oClNiU" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "statistics",
+    name: "Statistics",
+    units: [
+      {
+        name: "Unit 1: Functions Review",
+        topics: [
+          { name: "Polynomial, rational, exponential, and logarithmic functions", videoId: "FTlN8pXJsWw" },
+          { name: "Transformations and compositions", videoId: "Ql05GFHn-24" },
+          { name: "Inverse functions", videoId: "F8fR-2sy4Wg" },
+        ],
+      },
+      {
+        name: "Unit 2: Trigonometric Functions",
+        topics: [
+          { name: "Trigonometric identities and equations", videoId: "O_qEIcPV_M8" },
+          { name: "Sum and difference formulas", videoId: "ufRFbADdakg" },
+          { name: "Double-angle and half-angle formulas", videoId: "0g_1D2o0t1A" },
+        ],
+      },
+      {
+        name: "Unit 3: Analytic Trigonometry",
+        topics: [
+          { name: "Law of Sines and Law of Cosines", videoId: "2W-yRz4TT0A" },
+          { name: "Applications to triangles (area formulas)", videoId: "xM8rXsKxLo4" },
+          { name: "Solving general triangles", videoId: "q8q9u7K-5Vs" },
+        ],
+      },
+      {
+        name: "Unit 4: Polar Coordinates and Complex Numbers",
+        topics: [
+          { name: "Polar coordinate system", videoId: "8yV92eZ-1I0" },
+          { name: "Converting between polar and rectangular coordinates", videoId: "3uOqeL8A3qE" },
+          { name: "Graphing polar equations", videoId: "D1vbYIjvhPc" },
+          { name: "De Moivre's Theorem and nth roots", videoId: "QEqkJ5rPDrM" },
+        ],
+      },
+      {
+        name: "Unit 5: Vectors",
+        topics: [
+          { name: "Vector operations and magnitude", videoId: "ml4NSzCQobk" },
+          { name: "Dot product and projections", videoId: "LyGKycYT2v0" },
+          { name: "Applications of vectors in 2D and 3D", videoId: "oJqiK9sRIDE" },
+        ],
+      },
+      {
+        name: "Unit 6: Matrices and Determinants",
+        topics: [
+          { name: "Matrix operations (addition, multiplication)", videoId: "kT4Mp9EdVqs" },
+          { name: "Determinants and inverses", videoId: "iUQR0enP7RQ" },
+          { name: "Solving systems using matrices (Gaussian elimination, Cramer's Rule)", videoId: "oCygbOvQqgQ" },
+        ],
+      },
+      {
+        name: "Unit 7: Conic Sections",
+        topics: [
+          { name: "Parabolas, ellipses, and hyperbolas", videoId: "o2mCMYj7SNA" },
+          { name: "Standard and general forms of conic equations", videoId: "kAxJjxBT3dc" },
+          { name: "Graphing and applications", videoId: "aL1eZB-L3EM" },
+        ],
+      },
+      {
+        name: "Unit 8: Parametric Equations",
+        topics: [
+          { name: "Parametric representation of curves", videoId: "dqRWXNpZ4kM" },
+          { name: "Converting parametric to rectangular form", videoId: "FcX3eWm1aKM" },
+          { name: "Graphing parametric equations", videoId: "WnVGPBk8W5I" },
+        ],
+      },
+      {
+        name: "Unit 9: Sequences, Series, and Mathematical Induction",
+        topics: [
+          { name: "Arithmetic and geometric sequences", videoId: "lOgKi-PvvGo" },
+          { name: "Infinite series and convergence", videoId: "S-WoMC2lYfE" },
+          { name: "Mathematical induction", videoId: "TVSD1IJPP3g" },
+        ],
+      },
+      {
+        name: "Unit 10: Introduction to Limits",
+        topics: [
+          { name: "Intuitive understanding of limits", videoId: "riXcZT2ICjA" },
+          { name: "One-sided limits and continuity", videoId: "ByjVx0mQvY4" },
+          { name: "Limits at infinity and asymptotes", videoId: "DhUUINcPHC8" },
+        ],
+      },
+      {
+        name: "Unit 11: Advanced Probability and Statistics",
+        topics: [
+          { name: "Counting principles", videoId: "uqkdjAJMk-g" },
+          { name: "Probability rules and conditional probability", videoId: "ibINrxucIO4" },
+          { name: "Binomial probability and normal distributions", videoId: "2GyUkKmjgTk" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "trigonometry",
+    name: "Trigonometry",
+    units: [
+      {
+        name: "Unit 1: Introduction to Trigonometry",
+        topics: [
+          { name: "Angles in standard position and radian measure", videoId: "cgPYLJ-s5II" },
+          { name: "Unit circle and special angles", videoId: "1m9p9iubMLU" },
+          { name: "Trigonometric functions (sin, cos, tan, csc, sec, cot)", videoId: "PUB0TaZ7bhA" },
+        ],
+      },
+      {
+        name: "Unit 2: Trigonometric Graphs and Identities",
+        topics: [
+          { name: "Graphing sine and cosine functions", videoId: "e3BsFXcPJv0" },
+          { name: "Amplitude, period, phase shift, and vertical shift", videoId: "UoJn0C8mPfU" },
+          { name: "Pythagorean and cofunction identities", videoId: "Yv8Pys73b4c" },
+        ],
+      },
+      {
+        name: "Unit 3: Solving Trigonometric Equations",
+        topics: [
+          { name: "Solving basic trigonometric equations", videoId: "G0Cv1Ih-9qU" },
+          { name: "Inverse trigonometric functions", videoId: "s5WXe4RWw04" },
+          { name: "Using identities to simplify and solve", videoId: "X8SQoaWxNuE" },
         ],
       },
     ],

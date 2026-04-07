@@ -24,15 +24,6 @@ export interface LiveSession {
   participants: string[];
 }
 
-export interface ChatMessage {
-    id: string;
-    sessionId: string;
-    userId: string;
-    userName: string;
-    message: string;
-    createdAt: any;
-}
-
 export async function createLiveSession(title: string, createdBy: string): Promise<string> {
   const sessionsCollection = collection(db, 'liveSessions');
 
@@ -84,29 +75,4 @@ export async function getLiveSession(sessionId: string): Promise<LiveSession | n
     }
 
     return null;
-}
-
-export async function sendChatMessage(sessionId: string, userId: string, userName: string, message: string): Promise<void> {
-    const messagesCollection = collection(db, `liveSessions/${sessionId}/messages`);
-
-    await addDoc(messagesCollection, {
-        userId,
-        userName,
-        message,
-        createdAt: serverTimestamp(),
-    });
-}
-
-export function onChatMessagesUpdate(sessionId: string, callback: (messages: ChatMessage[]) => void) {
-    const messagesCollection = collection(db, `liveSessions/${sessionId}/messages`);
-    const q = query(messagesCollection, orderBy('createdAt', 'asc'), limit(50));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const messages = snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() } as ChatMessage)
-        );
-        callback(messages);
-    });
-
-    return unsubscribe;
 }

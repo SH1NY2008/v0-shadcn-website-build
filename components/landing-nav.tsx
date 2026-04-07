@@ -147,12 +147,7 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
         >
           Community
         </Link>
-        <Link 
-          href="/chat" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
-        >
-          Chat
-        </Link>
+
       </motion.div>
 
       {/* Right Group */}
