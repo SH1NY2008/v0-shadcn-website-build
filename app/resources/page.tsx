@@ -10,8 +10,9 @@ import Link from "next/link"
 import { CourseProgressBadge } from "@/components/course-progress-badge"
 import { TopicProgressButton } from "@/components/topic-progress-button"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { VideoPlayerDialog } from "@/components/video-player-dialog"
+import { Input } from "@/components/ui/input"
 
 const OPENSTAX_RESOURCES = [
   {
@@ -133,6 +134,14 @@ const OPENSTAX_RESOURCES = [
 
 export default function ResourcesPage() {
   const [selectedVideo, setSelectedVideo] = useState<{ id: string, title: string } | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredResources = useMemo(() => {
+    return OPENSTAX_RESOURCES.filter(resource =>
+      resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
 
   const categoryIds = [
     "ap-capstone",
@@ -172,8 +181,17 @@ export default function ResourcesPage() {
 
       <div className="mb-12">
         <h2 className="text-4xl font-black tracking-tighter text-[#2C2C2C] uppercase mb-6">Textbooks</h2>
+        <div className="mb-6">
+          <Input
+            type="search"
+            placeholder="Search textbooks..."
+            className="w-full max-w-lg"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {OPENSTAX_RESOURCES.map((resource, index) => (
+          {filteredResources.map((resource, index) => (
             <a href={resource.url} target="_blank" rel="noopener noreferrer" key={index} className="block p-6 rounded-xl border-4 border-black/10 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.1)]">
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
