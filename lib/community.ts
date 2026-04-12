@@ -1,7 +1,26 @@
 
 import { db, storage } from "./firebase";
 import { collection, getDocs, doc, getDoc, addDoc, setDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment, Timestamp, writeBatch } from "firebase/firestore";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref as storageRef, deleteObject } from "firebase/storage";
+
+/** Max binary size before base64 (~600KB encoded) so the peer-review doc stays under Firestore’s 1MB limit. */
+export const MAX_PEER_REVIEW_INLINE_BYTES = 450 * 1024;
+
+async function fileToBase64(file: File): Promise<string> {
+  if (typeof FileReader === "undefined") {
+    throw new Error("File reading is only available in the browser.");
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = reader.result as string;
+      const base64 = r.includes(",") ? r.split(",", 2)[1]! : r;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 /** Sort key for posts (handles Firestore Timestamp, Date, or plain objects with seconds). */
 function getCreatedAtMillis(data: { createdAt?: unknown }): number {
@@ -78,11 +97,15 @@ export interface PeerReview {
     submission: string;
     /** Original filename when a file was uploaded. */
     paperFileName?: string;
-    /** Public download URL (Firebase Storage). */
+    /** Public download URL (Firebase Storage — legacy). */
     paperDownloadUrl?: string;
     paperStoragePath?: string;
     /** MIME type of uploaded paper (helps preview images/PDF). */
     paperContentType?: string;
+    /** Paper bytes stored in Firestore as base64 (no Firebase Storage; Spark plan). */
+    paperInlineBase64?: string;
+    /** Optional link to a file hosted elsewhere (Imgur, Drive share link, etc.). */
+    paperExternalUrl?: string;
 }
 
 export interface RubricItem {
@@ -93,6 +116,8 @@ export interface RubricItem {
     attachmentFileName?: string;
     attachmentDownloadUrl?: string;
     attachmentStoragePath?: string;
+    attachmentInlineBase64?: string;
+    attachmentContentType?: string;
 }
 
 export interface Review {
@@ -118,36 +143,61 @@ function sanitizePaperFileName(name: string): string {
   return base.slice(0, 180);
 }
 
-/** Upload a paper file and attach download metadata to the peer-review document. */
+/** Resolved URL for preview/download (Storage URL, external link, or data URL from Firestore inline bytes). */
+export function peerReviewPaperDisplayUrl(pr: PeerReview): string | null {
+  if (pr.paperDownloadUrl) return pr.paperDownloadUrl;
+  const ext = pr.paperExternalUrl?.trim();
+  if (ext) return ext;
+  if (pr.paperInlineBase64 && pr.paperContentType) {
+    return `data:${pr.paperContentType};base64,${pr.paperInlineBase64}`;
+  }
+  return null;
+}
+
+export function peerReviewHasPaperAttachment(pr: PeerReview): boolean {
+  return !!peerReviewPaperDisplayUrl(pr);
+}
+
+/** Resolved URL for a rubric attachment (Storage or inline in Firestore). */
+export function rubricAttachmentDisplayUrl(item: RubricItem): string | null {
+  if (item.attachmentDownloadUrl) return item.attachmentDownloadUrl;
+  if (item.attachmentInlineBase64 && item.attachmentContentType) {
+    return `data:${item.attachmentContentType};base64,${item.attachmentInlineBase64}`;
+  }
+  return null;
+}
+
+/** Attach a paper file using Firestore only (no Firebase Storage — works on Spark plan). */
 export async function attachPeerReviewPaper(peerReviewId: string, file: File): Promise<void> {
-  const safeName = sanitizePaperFileName(file.name);
-  const path = `peer-reviews/${peerReviewId}/${Date.now()}_${safeName}`;
-  const ref = storageRef(storage, path);
-  await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
-  const url = await getDownloadURL(ref);
+  if (file.size > MAX_PEER_REVIEW_INLINE_BYTES) {
+    throw new Error(
+      `File is too large (${Math.round(file.size / 1024)}KB). Max ${MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB for in-database storage, or use an external link.`
+    );
+  }
+  const base64 = await fileToBase64(file);
   await updateDoc(doc(db, "peer-reviews", peerReviewId), {
     paperFileName: file.name,
-    paperDownloadUrl: url,
-    paperStoragePath: path,
+    paperInlineBase64: base64,
     paperContentType: file.type || "application/octet-stream",
   });
 }
 
-/** Upload a file for a single rubric row and store URLs on the rubric document. */
+/** Store a rubric attachment in Firestore only (no Storage). */
 export async function attachRubricItemFile(
   peerReviewId: string,
   rubricItemId: string,
   file: File
 ): Promise<void> {
-  const safeName = sanitizePaperFileName(file.name);
-  const path = `peer-reviews/${peerReviewId}/rubric/${rubricItemId}/${Date.now()}_${safeName}`;
-  const ref = storageRef(storage, path);
-  await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
-  const url = await getDownloadURL(ref);
+  if (file.size > MAX_PEER_REVIEW_INLINE_BYTES) {
+    throw new Error(
+      `Rubric file is too large. Max ${MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB per file without cloud storage.`
+    );
+  }
+  const base64 = await fileToBase64(file);
   await updateDoc(doc(db, "peer-reviews", peerReviewId, "rubric", rubricItemId), {
     attachmentFileName: file.name,
-    attachmentDownloadUrl: url,
-    attachmentStoragePath: path,
+    attachmentInlineBase64: base64,
+    attachmentContentType: file.type || "application/octet-stream",
   });
 }
 
@@ -560,17 +610,15 @@ export async function createPeerReview(
 
   let paperFields: Partial<PeerReview> = {};
   if (paperFile && paperFile.size > 0) {
-    const safeName = sanitizePaperFileName(paperFile.name);
-    const path = `peer-reviews/${id}/${Date.now()}_${safeName}`;
-    const ref = storageRef(storage, path);
-    await uploadBytes(ref, paperFile, {
-      contentType: paperFile.type || "application/octet-stream",
-    });
-    const url = await getDownloadURL(ref);
+    if (paperFile.size > MAX_PEER_REVIEW_INLINE_BYTES) {
+      throw new Error(
+        `Paper file is too large (${Math.round(paperFile.size / 1024)}KB). Max ${MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB without Firebase Storage, or paste an external link to your file instead.`
+      );
+    }
+    const base64 = await fileToBase64(paperFile);
     paperFields = {
       paperFileName: paperFile.name,
-      paperDownloadUrl: url,
-      paperStoragePath: path,
+      paperInlineBase64: base64,
       paperContentType: paperFile.type || undefined,
     };
   }
@@ -593,6 +641,42 @@ export async function createPeerReview(
     }
   }
   return id;
+}
+
+/** Remove a peer review, its subcollections, and associated Storage files. Call only after verifying the user is a teacher (see Firestore rules). */
+export async function deletePeerReview(peerReviewId: string): Promise<void> {
+  const prRef = doc(db, "peer-reviews", peerReviewId);
+  const prSnap = await getDoc(prRef);
+  if (!prSnap.exists()) return;
+
+  const data = prSnap.data() as PeerReview;
+  if (data.paperStoragePath) {
+    try {
+      await deleteObject(storageRef(storage, data.paperStoragePath));
+    } catch (e) {
+      console.warn("deletePeerReview paper file:", e);
+    }
+  }
+
+  const rubricSnap = await getDocs(collection(db, "peer-reviews", peerReviewId, "rubric"));
+  for (const rubricDoc of rubricSnap.docs) {
+    const r = rubricDoc.data() as RubricItem;
+    if (r.attachmentStoragePath) {
+      try {
+        await deleteObject(storageRef(storage, r.attachmentStoragePath));
+      } catch (e) {
+        console.warn("deletePeerReview rubric file:", e);
+      }
+    }
+    await deleteDoc(rubricDoc.ref);
+  }
+
+  const reviewsSnap = await getDocs(collection(db, "peer-reviews", peerReviewId, "reviews"));
+  for (const reviewDoc of reviewsSnap.docs) {
+    await deleteDoc(reviewDoc.ref);
+  }
+
+  await deleteDoc(prRef);
 }
 
 export async function createReview(peerReviewId: string, review: Omit<Review, "id" | "createdAt">) {

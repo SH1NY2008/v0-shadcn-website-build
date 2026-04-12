@@ -1,14 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Calculator, Menu } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Menu } from "lucide-react"
 import { useEffect, useState } from "react"
-import { auth, db } from "@/lib/firebase"
+import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User, signOut } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { useTeacherMode } from "@/context/teacher-mode-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,31 +31,33 @@ interface LandingNavProps {
 export function LandingNav({ heroStarted = true }: LandingNavProps) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
-  const [role, setRole] = useState<string | null>(null)
+  const { isTeacherMode, userRole } = useTeacherMode()
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
     return () => unsub()
   }, [])
 
-  useEffect(() => {
-    if (user) {
-      const fetchRole = async () => {
-        try {
-          const docRef = doc(db, "users", user.uid)
-          const docSnap = await getDoc(docRef)
-          if (docSnap.exists()) {
-            setRole(docSnap.data().role)
-          }
-        } catch (error) {
-          console.error("Error fetching user role:", error)
-        }
-      }
-      fetchRole()
-    } else {
-      setRole(null)
-    }
-  }, [user])
+  const links =
+    isTeacherMode && userRole === "teacher"
+      ? [
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/schedule", label: "Office Hours" },
+          { href: "/resources", label: "Resources" },
+          { href: "/quizzes", label: "Assignments" },
+          { href: "/quizzes#quiz-categories", label: "Quiz library" },
+          { href: "/community", label: "Community" },
+        ]
+      : [
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/schedule", label: "Schedule" },
+          { href: "/resources", label: "Resources" },
+          { href: "/quizzes", label: "Quizzes" },
+          { href: "/community", label: "Community" },
+        ]
+
+  /** Logged-in users should see links immediately; hero loader can leave `heroStarted` false for several seconds. */
+  const navVisible = heroStarted || !!user
 
   return (
     <nav className="w-full px-6 py-6 md:px-12 flex items-center justify-between relative z-50">
@@ -64,7 +65,7 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
       <motion.div 
         className="flex-1 flex items-center justify-start gap-6"
         initial={{ opacity: 0 }}
-        animate={{ opacity: heroStarted ? 1 : 0 }}
+        animate={{ opacity: navVisible ? 1 : 0 }}
         transition={{ duration: 0.6 }}
       >
         <Sheet>
@@ -81,72 +82,29 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
               </SheetTitle>
             </SheetHeader>
             <div className="flex flex-col gap-6 mt-8">
-              <Link 
-                href="/dashboard" 
-                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
-                onClick={() => document.body.click()} // Close sheet hack or use controlled state
-              >
-                Dashboard
-              </Link>
-              <Link 
-                href="/schedule" 
-                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
-              >
-                Schedule
-              </Link>
-              <Link 
-                href="/resources" 
-                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
-              >
-                Resources
-              </Link>
-              <Link
-                href="/community"
-                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
-              >
-                Community
-              </Link>
-              <Link
-                href="/chat"
-                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
-              >
-                Chat
-              </Link>
-              {!user && null}
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
+                  onClick={() => document.body.click()}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           </SheetContent>
         </Sheet>
 
-        <Link 
-          href="/dashboard" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
-        >
-          Dashboard
-        </Link>
-        <Link 
-          href="/schedule" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
-        >
-          Schedule
-        </Link>
-        <Link 
-          href="/resources" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
-        >
-          Resources
-        </Link>
-        <Link 
-          href="/quizzes" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
-        >
-          Quizzes
-        </Link>
-        <Link 
-          href="/community" 
-          className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
-        >
-          Community
-        </Link>
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="hidden md:block text-lg font-bold hover:text-primary transition-colors duration-200"
+          >
+            {link.label}
+          </Link>
+        ))}
 
       </motion.div>
 
@@ -154,7 +112,7 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
       <motion.div 
         className="flex items-center justify-end gap-6"
         initial={{ opacity: 0 }}
-        animate={{ opacity: heroStarted ? 1 : 0 }}
+        animate={{ opacity: navVisible ? 1 : 0 }}
         transition={{ duration: 0.6 }}
       >
         <Link href="/" className="flex items-center gap-2 group order-first md:order-none">
@@ -198,7 +156,7 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
               >
                 Resources
               </DropdownMenuItem>
-              {role === "teacher" && (
+              {userRole === "teacher" && (
                 <DropdownMenuItem
                   className="cursor-pointer font-bold"
                   onClick={() => router.push("/teacher/progress")}

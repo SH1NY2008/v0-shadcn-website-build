@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { useQuizSettings } from "@/hooks/use-quiz-settings"
 
 export function AccessibilityDialog() {
-  const { settings, toggleSound, toggleHaptics, updateZoom, loaded } = useQuizSettings()
+  const { settings, toggleSound, toggleHaptics, loaded } = useQuizSettings()
 
   if (!loaded) {
     return null
@@ -59,18 +59,6 @@ export function AccessibilityDialog() {
                 onCheckedChange={toggleHaptics}
                 className="data-[state=checked]:bg-[#006B6B]"
               />
-            </div>
-
-            <div className="flex items-center justify-between gap-8">
-              <div className="flex items-center gap-3">
-                <Label htmlFor="font-size" className="font-bold text-[#2C2C2C] cursor-pointer">Zoom Level</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button onClick={() => updateZoom(settings.zoom - 0.1)} size="sm" variant="outline" className="font-bold">-</Button>
-                <span className="font-bold text-[#2C2C2C]">{Math.round(settings.zoom * 100)}%</span>
-                <Button onClick={() => updateZoom(settings.zoom + 0.1)} size="sm" variant="outline" className="font-bold">+</Button>
-                <Button onClick={() => updateZoom(1)} size="sm" variant="outline" className="font-bold">Reset</Button>
-              </div>
             </div>
         </div>
       </DialogContent>

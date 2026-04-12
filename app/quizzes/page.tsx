@@ -45,7 +45,7 @@ const getCategoryIcon = (category: string) => {
 }
 
 export default function QuizzesPage() {
-  const { settings, toggleSound, toggleHaptics, updateFontSize, loaded } = useQuizSettings()
+  const { settings, toggleSound, toggleHaptics, loaded } = useQuizSettings()
   const { isTeacherMode } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
   const [classes, setClasses] = useState<ClassData[]>([])
@@ -192,21 +192,6 @@ export default function QuizzesPage() {
                       className="data-[state=checked]:bg-[#006B6B]"
                     />
                   </div>
-
-                <div className="flex items-center justify-between gap-8">
-                  <div className="flex items-center gap-3">
-                    <Label htmlFor="font-size" className="font-bold text-[#2C2C2C] cursor-pointer">Text Size</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button onClick={() => updateFontSize(settings.fontSize - 1)} size="sm" variant="outline" className="font-bold">-</Button>
-                    <span className="font-bold text-[#2C2C2C]">{settings.fontSize}px</span>
-                    <Button onClick={() => updateFontSize(settings.fontSize + 1)} size="sm" variant="outline" className="font-bold">+</Button>
-                    <Button onClick={() => updateFontSize(16)} size="sm" variant="outline" className="font-bold">Reset</Button>
-                  </div>
-                </div>
-
-
-
 
               </CardContent>
             </Card>

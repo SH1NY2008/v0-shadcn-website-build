@@ -4,14 +4,19 @@
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   subscribeToPeerReviews,
   createPeerReview,
+  deletePeerReview,
+  peerReviewHasPaperAttachment,
+  MAX_PEER_REVIEW_INLINE_BYTES,
   type PeerReview,
 } from "@/lib/community";
 import { toast } from "sonner";
-import { FileText, Upload } from "lucide-react";
+import { FileText, Trash2, Upload } from "lucide-react";
+import { useTeacherMode } from "@/context/teacher-mode-context";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import {
@@ -38,8 +43,14 @@ export default function PeerReviewPage() {
   const [newReviewTitle, setNewReviewTitle] = useState("");
   const [newReviewSubmission, setNewReviewSubmission] = useState("");
   const [paperFile, setPaperFile] = useState<File | null>(null);
+  const [paperExternalUrl, setPaperExternalUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rubricItems, setRubricItems] = useState<RubricDraft[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteIdRef = useRef<string | null>(null);
+  const { userRole, isRoleResolved } = useTeacherMode();
+  const isTeacher = isRoleResolved && userRole === "teacher";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -87,8 +98,9 @@ export default function PeerReviewPage() {
       return;
     }
     const notes = newReviewSubmission.trim();
-    if (!paperFile && !notes) {
-      toast.error("Upload a paper (PDF, Word, etc.) or paste your submission in the text area.");
+    const external = paperExternalUrl.trim();
+    if (!paperFile && !notes && !external) {
+      toast.error("Add a file (under 450KB), paste a link to your file, or add notes in the text area.");
       return;
     }
 
@@ -101,6 +113,7 @@ export default function PeerReviewPage() {
           author: user.displayName || user.email || "Anonymous",
           authorId: user.uid,
           status: "Pending Review",
+          ...(external ? { paperExternalUrl: external } : {}),
         },
         rubricItems.map(({ criterion, maxScore }) => ({ criterion, maxScore })),
         rubricItems.map((r) => r.file),
@@ -110,15 +123,33 @@ export default function PeerReviewPage() {
       setNewReviewTitle("");
       setNewReviewSubmission("");
       setPaperFile(null);
+      setPaperExternalUrl("");
       setRubricItems([]);
       setIsSubmitDialogOpen(false);
     } catch (e) {
       console.error(e);
-      toast.error(
-        "Could not submit. If you uploaded a file, confirm Firebase Storage is enabled and rules allow authenticated uploads."
-      );
+      toast.error(e instanceof Error ? e.message : "Could not submit. Try a smaller file or use a link instead.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const confirmDeletePeerReview = async () => {
+    const id = deleteIdRef.current ?? deleteTargetId;
+    if (!id || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deletePeerReview(id);
+      toast.success("Peer review removed.");
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        "Could not delete. Ensure your Firebase rules allow teachers to delete peer-reviews documents and storage objects."
+      );
+    } finally {
+      deleteIdRef.current = null;
+      setDeleteTargetId(null);
+      setIsDeleting(false);
     }
   };
 
@@ -158,7 +189,8 @@ export default function PeerReviewPage() {
                         <DialogHeader>
                         <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Submit for Peer Review</DialogTitle>
                         <DialogDescription className="text-lg font-bold text-[#2C2C2C]/60">
-                            Upload your paper and/or add notes. Reviewers can download your file and leave comments with scores.
+                            Files are stored in Firestore (no Firebase Storage needed). Images and PDFs up to{" "}
+                            {MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB, or paste a link to a larger file (Google Drive, Imgur, etc.).
                         </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
@@ -187,6 +219,27 @@ export default function PeerReviewPage() {
                                       Remove file
                                     </Button>
                                   )}
+                                  <p className="text-xs font-bold text-[#2C2C2C]/50">
+                                    Max {MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB per file (stored in the database, not cloud Storage).
+                                  </p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-4 items-start gap-4">
+                                <Label htmlFor="paper-link" className="text-right font-bold text-lg text-[#2C2C2C] pt-2">
+                                  Link (optional)
+                                </Label>
+                                <div className="col-span-3 space-y-1">
+                                  <Input
+                                    id="paper-link"
+                                    type="url"
+                                    placeholder="https://… if your file is larger, host it elsewhere and paste the link"
+                                    value={paperExternalUrl}
+                                    onChange={(e) => setPaperExternalUrl(e.target.value)}
+                                    className="bg-white border-2 border-black text-black font-bold focus:ring-0"
+                                  />
+                                  <p className="text-xs font-bold text-[#2C2C2C]/50">
+                                    Use this for big PDFs or images over {MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB.
+                                  </p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
@@ -199,13 +252,13 @@ export default function PeerReviewPage() {
                                     onChange={(e) => setNewReviewSubmission(e.target.value)}
                                     className="min-h-[120px] bg-white border-2 border-black text-black font-bold focus:ring-0"
                                   />
-                                  <p className="text-xs font-bold text-[#2C2C2C]/50">Provide a file, notes, or both.</p>
+                                  <p className="text-xs font-bold text-[#2C2C2C]/50">Provide a file, a link, notes, or any combination.</p>
                                 </div>
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg text-[#2C2C2C] mb-2">Rubric</h3>
                                 <p className="text-xs font-bold text-[#2C2C2C]/50 mb-3">
-                                  Add criteria and max points, and optionally upload a reference file per row (PDF, Word, etc.).
+                                  Add criteria and max points; optional reference file per row (max {MAX_PEER_REVIEW_INLINE_BYTES / 1024}KB each).
                                 </p>
                                 {rubricItems.map((item, index) => (
                                     <div key={index} className="mb-4 rounded-xl border-2 border-black/20 bg-white/40 p-3 space-y-2">
@@ -264,28 +317,57 @@ export default function PeerReviewPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {peerReviews.map((assignment) => (
-            <Link href={`/community/peerreview/${assignment.id}`} key={assignment.id}>
-              <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
-                <div>
-                  <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
-                    {assignment.title}
-                  </h3>
-                  <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">Author: {assignment.author}</p>
-                  <p className="text-lg font-bold text-[#2C2C2C]/60">Status: {assignment.status}</p>
-                  {assignment.paperDownloadUrl && (
-                    <p className="mt-2 inline-flex items-center gap-1 text-sm font-black uppercase tracking-wide text-[#006B6B]">
-                      <FileText className="h-4 w-4" /> Paper attached
-                    </p>
-                  )}
-                </div>
-                <Button className="mt-8 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  {user?.uid === assignment.authorId ? "View your submission" : "Open"}
+            <div key={assignment.id} className="relative">
+              {isTeacher && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="absolute right-4 top-4 z-10 gap-1 border-2 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,0.25)]"
+                  onClick={() => {
+                    deleteIdRef.current = assignment.id;
+                    setDeleteTargetId(assignment.id);
+                  }}
+                  aria-label={`Delete peer review ${assignment.title}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
                 </Button>
-              </div>
-            </Link>
+              )}
+              <Link href={`/community/peerreview/${assignment.id}`}>
+                <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
+                  <div>
+                    <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight pr-24 sm:pr-28">
+                      {assignment.title}
+                    </h3>
+                    <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">Author: {assignment.author}</p>
+                    <p className="text-lg font-bold text-[#2C2C2C]/60">Status: {assignment.status}</p>
+                    {peerReviewHasPaperAttachment(assignment) && (
+                      <p className="mt-2 inline-flex items-center gap-1 text-sm font-black uppercase tracking-wide text-[#006B6B]">
+                        <FileText className="h-4 w-4" /> Paper attached
+                      </p>
+                    )}
+                  </div>
+                  <Button className="mt-8 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    {user?.uid === assignment.authorId ? "View your submission" : "Open"}
+                  </Button>
+                </div>
+              </Link>
+            </div>
           ))}
         </div>
       )}
+      <ConfirmationDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            deleteIdRef.current = null;
+            setDeleteTargetId(null);
+          }
+        }}
+        onConfirm={confirmDeletePeerReview}
+        title="Delete this peer review?"
+        description="This permanently removes the submission, rubric, all reviews, and uploaded files. This cannot be undone."
+      />
     </PageLayout>
   );
 }

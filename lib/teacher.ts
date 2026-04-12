@@ -25,15 +25,21 @@ function getTotalTopicCount(): number {
 async function getStudentOverallProgressPercent(uid: string): Promise<number> {
   const total = getTotalTopicCount()
   if (total === 0) return 0
-  const counts = await Promise.all(
-    curriculum.map(async (c) => {
-      const ref = collection(db, "users", uid, "courses", c.id, "topics")
-      const snap = await getDocs(ref)
-      return snap.size
-    })
-  )
-  const completed = counts.reduce((a, b) => a + b, 0)
-  return Math.round((completed / total) * 100)
+  try {
+    const counts = await Promise.all(
+      curriculum.map(async (c) => {
+        const ref = collection(db, "users", uid, "courses", c.id, "topics")
+        const snap = await getDocs(ref)
+        return snap.size
+      })
+    )
+    const completed = counts.reduce((a, b) => a + b, 0)
+    return Math.round((completed / total) * 100)
+  } catch (e) {
+    // Often FirebaseError: permission-denied when rules allow only self-read on users/{uid}/courses/...
+    console.warn("getStudentOverallProgressPercent: cannot read progress for", uid, e)
+    return 0
+  }
 }
 
 export interface TeacherStatsPayload {
