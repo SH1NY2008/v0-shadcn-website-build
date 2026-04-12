@@ -12,7 +12,9 @@ import {
   where,
   onSnapshot,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  updateDoc,
+  arrayRemove,
 } from "firebase/firestore"
 
 function getTotalTopicCount(): number {
@@ -301,6 +303,38 @@ export async function getClassById(classId: string): Promise<ClassData | null> {
   const snap = await getDoc(ref)
   if (!snap.exists()) return null
   return { id: snap.id, ...snap.data() } as ClassData
+}
+
+/** Remove a student from a class (updates `classes/{id}.students` and `users/{studentId}.classes`). */
+export async function removeStudentFromClass(
+  teacherId: string,
+  classId: string,
+  studentId: string
+): Promise<void> {
+  const classRef = doc(db, "classes", classId)
+  const classSnap = await getDoc(classRef)
+  if (!classSnap.exists()) {
+    throw new Error("Class not found")
+  }
+  const data = classSnap.data() as { teacherId?: string; students?: string[] }
+  if (data.teacherId !== teacherId) {
+    throw new Error("Not authorized to modify this class")
+  }
+  if (!data.students?.includes(studentId)) {
+    return
+  }
+
+  await updateDoc(classRef, {
+    students: arrayRemove(studentId),
+  })
+
+  const studentRef = doc(db, "users", studentId)
+  const studentSnap = await getDoc(studentRef)
+  if (studentSnap.exists()) {
+    await updateDoc(studentRef, {
+      classes: arrayRemove(classId),
+    })
+  }
 }
 
 export async function getStudentsForClass(studentUids: string[]) {

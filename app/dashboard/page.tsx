@@ -14,6 +14,7 @@ import {
   Users,
   FileText,
   Settings,
+  UserMinus,
 } from "lucide-react"
 import { useEffect, useState, useMemo } from "react"
 import { auth } from "@/lib/firebase"
@@ -31,6 +32,7 @@ import {
   ClassData,
   createClass,
   getStudentsForClass,
+  removeStudentFromClass,
   type TeacherStatsPayload,
   type Assignment,
 } from "@/lib/teacher"
@@ -108,6 +110,22 @@ export default function DashboardPage() {
       setIsRosterLoading(false)
     } else {
       setClassRoster([])
+    }
+  }
+
+  const handleRemoveStudentFromClass = async (studentUid: string, studentLabel: string) => {
+    if (!user || !selectedClass) return
+    if (!confirm(`Remove ${studentLabel} from ${selectedClass.name}? They can rejoin with the class code.`)) return
+    try {
+      await removeStudentFromClass(user.uid, selectedClass.id, studentUid)
+      toast.success("Student removed from class")
+      setClassRoster((prev) => prev.filter((s) => s.uid !== studentUid))
+      setSelectedClass((prev) =>
+        prev ? { ...prev, students: prev.students.filter((id) => id !== studentUid) } : null
+      )
+    } catch (e) {
+      console.error(e)
+      toast.error("Could not remove student. Check Firestore rules.")
     }
   }
 
@@ -659,9 +677,31 @@ export default function DashboardPage() {
               ) : classRoster.length > 0 ? (
                 <ul className="space-y-3">
                   {classRoster.map((student) => (
-                    <li key={student.uid} className="flex items-center justify-between bg-white/30 p-3 rounded-lg">
-                      <span className="font-bold text-[#2C2C2C]">{student.displayName || "Student"}</span>
-                      <span className="text-sm text-[#006B6B]">{student.email}</span>
+                    <li
+                      key={student.uid}
+                      className="flex flex-wrap items-center justify-between gap-2 bg-white/30 p-3 rounded-lg"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-[#2C2C2C] block">
+                          {student.displayName || "Student"}
+                        </span>
+                        <span className="text-sm text-[#006B6B] truncate block">{student.email}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 border-2 border-red-200 font-bold text-red-700 hover:bg-red-50"
+                        onClick={() =>
+                          handleRemoveStudentFromClass(
+                            student.uid,
+                            student.displayName || student.email || "this student"
+                          )
+                        }
+                      >
+                        <UserMinus className="h-4 w-4 mr-1" />
+                        Remove
+                      </Button>
                     </li>
                   ))}
                 </ul>

@@ -22,14 +22,24 @@ export const googleProvider = new GoogleAuthProvider()
 export const db = getFirestore(app)
 export const storage = getStorage(app)
 
+/**
+ * Firestore persistence must run at most once per tab. Next.js Fast Refresh re-executes
+ * this module and would call enableIndexedDbPersistence again on the same `db`, which
+ * can trigger SDK internal errors (e.g. WatchChangeAggregator "Unexpected state").
+ */
 if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == "failed-precondition") {
-      console.warn("Firebase persistence failed: Multiple tabs open")
-    } else if (err.code == "unimplemented") {
-      console.warn("Firebase persistence not supported by browser")
-    }
-  })
+  const w = window as Window & { __numeriaFirestorePersistence?: boolean }
+  if (!w.__numeriaFirestorePersistence) {
+    w.__numeriaFirestorePersistence = true
+    enableIndexedDbPersistence(db).catch((err: { code?: string }) => {
+      w.__numeriaFirestorePersistence = false
+      if (err.code === "failed-precondition") {
+        console.warn("Firebase persistence failed: Multiple tabs open")
+      } else if (err.code === "unimplemented") {
+        console.warn("Firebase persistence not supported by browser")
+      }
+    })
+  }
 }
 
 export let analytics: ReturnType<typeof getAnalytics> | null = null
