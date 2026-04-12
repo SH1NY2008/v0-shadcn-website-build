@@ -116,6 +116,31 @@ service cloud.firestore {
       }
     }
 
+    // ----- Study group invites (in-app; invitee sees on dashboard) -----
+    match /studyGroupInvites/{inviteId} {
+      allow read: if signedIn() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.fromUserId == request.auth.uid
+      );
+
+      allow create: if signedIn()
+        && request.resource.data.fromUserId == request.auth.uid
+        && request.resource.data.toUserId is string
+        && request.resource.data.toUserId != request.auth.uid
+        && request.resource.data.studyGroupId is string
+        && request.resource.data.studyGroupTitle is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.auth.uid in get(/databases/$(database)/documents/studygroups/$(request.resource.data.studyGroupId)).data.members;
+
+      allow delete: if signedIn() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.fromUserId == request.auth.uid
+      );
+
+      allow update: if false;
+    }
+
     // ----- Peer review -----
     match /peer-reviews/{peerId} {
       allow read: if signedIn();

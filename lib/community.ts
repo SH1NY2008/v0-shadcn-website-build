@@ -450,35 +450,144 @@ export async function getStudyGroupMembers(studyGroupId: string): Promise<Member
   return members;
 }
 
-/** Directory: discoverable profiles only (no email in documents). */
-export function subscribeToDiscoverableProfiles(
-  callback: (profiles: PublicProfile[]) => void
+/** Row for People directory (cards show displayName/role/avatar only; email stays off-card). */
+export interface DirectoryListingUser {
+  uid: string;
+  displayName: string;
+  photoURL: string;
+  role: string;
+}
+
+/**
+ * All `users` documents except the signed-in user, sorted by display name.
+ * Requires Firestore rules that allow signed-in read on `users`.
+ */
+export function subscribeToUsersDirectory(
+  currentUserId: string,
+  callback: (users: DirectoryListingUser[]) => void
 ) {
-  const q = query(
-    collection(db, "publicProfiles"),
-    where("discoverable", "==", true),
-    orderBy("displayName"),
-    limit(200)
-  );
+  const usersCol = collection(db, "users");
   return safeUnsubscribe(
     onSnapshot(
-      q,
+      usersCol,
       (snapshot) => {
-        const list = snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            uid: d.id,
-            ...data,
-          } as PublicProfile;
-        });
+        const list = snapshot.docs
+          .filter((d) => d.id !== currentUserId)
+          .map((d) => {
+            const data = d.data() as {
+              displayName?: string;
+              email?: string;
+              photoURL?: string;
+              role?: string;
+            };
+            const displayName =
+              (typeof data.displayName === "string" && data.displayName.trim()) ||
+              (typeof data.email === "string" && data.email.split("@")[0]) ||
+              "User";
+            return {
+              uid: d.id,
+              displayName,
+              photoURL: typeof data.photoURL === "string" ? data.photoURL : "",
+              role: data.role || "student",
+            };
+          })
+          .sort((a, b) =>
+            a.displayName.localeCompare(b.displayName, undefined, { sensitivity: "base" })
+          );
         callback(list);
       },
       (err) => {
-        console.error("subscribeToDiscoverableProfiles:", err);
+        console.error("subscribeToUsersDirectory:", err);
         callback([]);
       }
     )
   );
+}
+
+/** In-app study group invite (shown on invitee’s dashboard). */
+export interface StudyGroupInvite {
+  id: string;
+  fromUserId: string;
+  fromDisplayName: string;
+  toUserId: string;
+  studyGroupId: string;
+  studyGroupTitle: string;
+  status: string;
+  createdAt?: unknown;
+}
+
+export async function sendStudyGroupInvite(
+  fromUserId: string,
+  fromDisplayName: string,
+  toUserId: string,
+  studyGroupId: string
+): Promise<void> {
+  if (fromUserId === toUserId) return;
+  const group = await getStudyGroup(studyGroupId);
+  if (!group) throw new Error("GROUP_NOT_FOUND");
+  if (!group.members.includes(fromUserId)) throw new Error("NOT_A_MEMBER");
+  if (group.members.includes(toUserId)) throw new Error("ALREADY_MEMBER");
+  // Scope the duplicate query to docs the current user (sender) can read per rules.
+  const pending = query(
+    collection(db, "studyGroupInvites"),
+    where("fromUserId", "==", fromUserId),
+    where("toUserId", "==", toUserId)
+  );
+  const existing = await getDocs(pending);
+  const dup = existing.docs.some((d) => {
+    const x = d.data();
+    return x.studyGroupId === studyGroupId && x.status === "pending";
+  });
+  if (dup) throw new Error("DUPLICATE_INVITE");
+  await addDoc(collection(db, "studyGroupInvites"), {
+    fromUserId,
+    fromDisplayName: fromDisplayName.slice(0, 120),
+    toUserId,
+    studyGroupId,
+    studyGroupTitle: group.title.slice(0, 200),
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+}
+
+export function subscribeToIncomingStudyGroupInvites(
+  userId: string,
+  callback: (invites: StudyGroupInvite[]) => void
+) {
+  const q = query(collection(db, "studyGroupInvites"), where("toUserId", "==", userId));
+  return safeUnsubscribe(
+    onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as StudyGroupInvite))
+          .filter((i) => i.status === "pending")
+          .sort((a, b) => getCreatedAtMillis(a) - getCreatedAtMillis(b));
+        callback(list);
+      },
+      (err) => {
+        console.error("subscribeToIncomingStudyGroupInvites:", err);
+        callback([]);
+      }
+    )
+  );
+}
+
+/** Accept (join group) or decline (delete invite). */
+export async function respondToStudyGroupInvite(
+  inviteId: string,
+  recipientUserId: string,
+  accept: boolean
+): Promise<void> {
+  const ref = doc(db, "studyGroupInvites", inviteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data() as StudyGroupInvite;
+  if (data.toUserId !== recipientUserId || data.status !== "pending") return;
+  if (accept) {
+    await joinStudyGroup(data.studyGroupId, recipientUserId);
+  }
+  await deleteDoc(ref);
 }
 
 export async function sendStudyGroupMessage(

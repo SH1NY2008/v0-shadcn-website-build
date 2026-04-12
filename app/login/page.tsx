@@ -64,6 +64,10 @@ function LoginForm({
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    if (!email.trim() || !password) {
+      setError("Please enter both email and password.")
+      return
+    }
     setLoading(true)
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password)

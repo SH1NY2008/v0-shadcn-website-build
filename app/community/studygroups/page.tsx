@@ -8,12 +8,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   subscribeToStudyGroups,
-  subscribeToDiscoverableProfiles,
+  subscribeToUsersDirectory,
   createStudyGroup,
   deleteStudyGroup,
+  sendStudyGroupInvite,
   type StudyGroup,
+  type DirectoryListingUser,
 } from "@/lib/community";
-import type { PublicProfile } from "@/lib/user-profile";
 import { syncPublicProfileFromAuthUser } from "@/lib/user-profile";
 import { useTeacherMode } from "@/context/teacher-mode-context";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
@@ -31,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Users, UserRound, Link2 } from "lucide-react";
+import { Loader2, Mail, Trash2, Users, UserRound } from "lucide-react";
 import { StudyGroupSkeleton } from "@/components/study-group-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,10 +53,11 @@ export default function StudyGroupsPage() {
   const [newGroupTitle, setNewGroupTitle] = useState("");
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [people, setPeople] = useState<PublicProfile[]>([]);
+  const [people, setPeople] = useState<DirectoryListingUser[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteFor, setInviteFor] = useState<PublicProfile | null>(null);
+  const [inviteFor, setInviteFor] = useState<DirectoryListingUser | null>(null);
   const [inviteGroupId, setInviteGroupId] = useState<string>("");
+  const [sendInviteLoading, setSendInviteLoading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -82,7 +84,7 @@ export default function StudyGroupsPage() {
       setPeople([]);
       return;
     }
-    const unsub = subscribeToDiscoverableProfiles(setPeople);
+    const unsub = subscribeToUsersDirectory(user.uid, setPeople);
     return () => unsub();
   }, [user]);
 
@@ -91,7 +93,11 @@ export default function StudyGroupsPage() {
     : [];
 
   const handleCreateGroup = async () => {
-    if (!user || !newGroupTitle || !newGroupDescription) return;
+    if (!user) return;
+    if (!newGroupTitle.trim() || !newGroupDescription.trim()) {
+      toast.message("Fill in both title and description before creating a group.");
+      return;
+    }
 
     await createStudyGroup(
       { title: newGroupTitle, description: newGroupDescription },
@@ -102,13 +108,13 @@ export default function StudyGroupsPage() {
     setIsCreateGroupOpen(false);
   };
 
-  const openInvite = (profile: PublicProfile) => {
+  const openInvite = (profile: DirectoryListingUser) => {
     if (!user) {
       toast.message("Sign in to invite people to a group.");
       return;
     }
     if (myMemberGroupIds.length === 0) {
-      toast.message("Join a study group first, then you can copy an invite link to share.");
+      toast.message("Join a study group first, then you can send invites.");
       return;
     }
     setInviteFor(profile);
@@ -116,15 +122,37 @@ export default function StudyGroupsPage() {
     setInviteOpen(true);
   };
 
-  const copyInviteLink = async () => {
-    if (!inviteGroupId) return;
-    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/community/studygroups/${inviteGroupId}`;
+  const handleSendInvite = async () => {
+    if (!user || !inviteFor || !inviteGroupId) return;
+    const fromName =
+      user.displayName || user.email?.split("@")[0] || "Someone";
+    setSendInviteLoading(true);
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Invite link copied — share it so they can join.");
+      await sendStudyGroupInvite(
+        user.uid,
+        fromName,
+        inviteFor.uid,
+        inviteGroupId
+      );
+      toast.success(
+        `Invite sent to ${inviteFor.displayName}. They’ll see it on their dashboard.`
+      );
       setInviteOpen(false);
-    } catch {
-      toast.error("Could not copy to clipboard.");
+      setInviteFor(null);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
+      if (msg === "DUPLICATE_INVITE") {
+        toast.message("A pending invite already exists for this group.");
+      } else if (msg === "ALREADY_MEMBER") {
+        toast.message("That person is already in this group.");
+      } else if (msg === "NOT_A_MEMBER") {
+        toast.error("You must be a member of the group to invite others.");
+      } else {
+        console.error(e);
+        toast.error("Could not send invite.");
+      }
+    } finally {
+      setSendInviteLoading(false);
     }
   };
 
@@ -167,39 +195,53 @@ export default function StudyGroupsPage() {
               <Button className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Create New Group</Button>
             </DialogTrigger>
             <DialogContent className="bg-[#FFC971] border-4 border-black">
-              <DialogHeader>
-                <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Create a new study group</DialogTitle>
-                <DialogDescription className="text-lg font-bold text-[#2C2C2C]/60">
-                  Fill in the details below to create a new study group.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="title" className="text-right font-bold text-lg text-[#2C2C2C]">
-                    Title
-                  </Label>
-                  <Input
-                    id="title"
-                    value={newGroupTitle}
-                    onChange={(e) => setNewGroupTitle(e.target.value)}
-                    className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
-                  />
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleCreateGroup();
+                }}
+              >
+                <DialogHeader>
+                  <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Create a new study group</DialogTitle>
+                  <DialogDescription className="text-lg font-bold text-[#2C2C2C]/60">
+                    Fill in the details below to create a new study group.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="title" className="text-right font-bold text-lg text-[#2C2C2C]">
+                      Title
+                    </Label>
+                    <Input
+                      id="title"
+                      required
+                      value={newGroupTitle}
+                      onChange={(e) => setNewGroupTitle(e.target.value)}
+                      className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="description" className="text-right font-bold text-lg text-[#2C2C2C]">
+                      Description
+                    </Label>
+                    <Input
+                      id="description"
+                      required
+                      value={newGroupDescription}
+                      onChange={(e) => setNewGroupDescription(e.target.value)}
+                      className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right font-bold text-lg text-[#2C2C2C]">
-                    Description
-                  </Label>
-                  <Input
-                    id="description"
-                    value={newGroupDescription}
-                    onChange={(e) => setNewGroupDescription(e.target.value)}
-                    className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateGroup} className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Create</Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button
+                    type="submit"
+                    className="bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    Create
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         )}
@@ -274,24 +316,22 @@ export default function StudyGroupsPage() {
             <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
               <p className="text-xl font-black text-[#2C2C2C]">Sign in to browse people</p>
               <p className="mt-2 font-bold text-[#2C2C2C]/60">
-                Discoverable profiles are listed here. You can copy an invite link to a group you belong to.
+                Everyone else in the app directory is listed here. You can copy an invite link to a group you belong to.
               </p>
               <Button asChild className="mt-6 bg-[#006B6B] font-bold text-white">
                 <Link href="/login">Sign in</Link>
               </Button>
             </div>
-          ) : people.filter((p) => p.uid !== user.uid).length === 0 ? (
+          ) : people.length === 0 ? (
             <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
-              <p className="text-xl font-black text-[#2C2C2C]">No one in the directory yet</p>
+              <p className="text-xl font-black text-[#2C2C2C]">No one else in the directory yet</p>
               <p className="mt-2 font-bold text-[#2C2C2C]/60">
-                Profiles with discoverability on appear here after users sign in.
+                When other accounts exist in Firestore, they show up here (you are not listed).
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {people
-                .filter((p) => p.uid !== user.uid)
-                .map((p) => (
+              {people.map((p) => (
                   <Card
                     key={p.uid}
                     className="border-4 border-black/10 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.08)]"
@@ -341,7 +381,7 @@ export default function StudyGroupsPage() {
             </DialogTitle>
             <DialogDescription className="font-bold text-[#2C2C2C]/70">
               {inviteFor
-                ? `Copy a link to ${inviteFor.displayName} (they join when they open it).`
+                ? `We’ll notify ${inviteFor.displayName}. They can accept or decline on their dashboard.`
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -365,11 +405,16 @@ export default function StudyGroupsPage() {
           <DialogFooter>
             <Button
               type="button"
-              onClick={copyInviteLink}
+              disabled={sendInviteLoading || !inviteGroupId}
+              onClick={() => void handleSendInvite()}
               className="bg-[#006B6B] text-white font-bold border-2 border-black"
             >
-              <Link2 className="mr-2 h-4 w-4" />
-              Copy invite link
+              {sendInviteLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="mr-2 h-4 w-4" />
+              )}
+              Send invite
             </Button>
           </DialogFooter>
         </DialogContent>

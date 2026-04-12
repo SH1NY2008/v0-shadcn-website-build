@@ -15,6 +15,7 @@ import {
   FileText,
   Settings,
   UserMinus,
+  Mail,
 } from "lucide-react"
 import { useEffect, useState, useMemo } from "react"
 import { auth } from "@/lib/firebase"
@@ -37,6 +38,11 @@ import {
   type Assignment,
 } from "@/lib/teacher"
 import { joinClassWithCode, subscribeToStudentClasses } from "@/lib/student"
+import {
+  subscribeToIncomingStudyGroupInvites,
+  respondToStudyGroupInvite,
+  type StudyGroupInvite,
+} from "@/lib/community"
 import { 
   Dialog, 
   DialogContent, 
@@ -74,7 +80,8 @@ export default function DashboardPage() {
   const [weeklyCompleted, setWeeklyCompleted] = useState<number>(0)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
   const [studentQuizAssignments, setStudentQuizAssignments] = useState<Assignment[]>([])
-  
+  const [studyGroupInvites, setStudyGroupInvites] = useState<StudyGroupInvite[]>([])
+
   // Teacher specific state (live: classes, assignments, quiz submissions for roster students)
   const [teacherData, setTeacherData] = useState<TeacherStatsPayload>({
     totalStudents: 0,
@@ -90,7 +97,31 @@ export default function DashboardPage() {
     return () => unsub()
   }, [])
 
+  useEffect(() => {
+    if (!user) {
+      setStudyGroupInvites([])
+      return
+    }
+    const unsub = subscribeToIncomingStudyGroupInvites(user.uid, setStudyGroupInvites)
+    return () => unsub()
+  }, [user])
+
   const name = user?.displayName || (isTeacherMode ? "Educator" : "Student")
+
+  const handleStudyGroupInvite = async (invite: StudyGroupInvite, accept: boolean) => {
+    if (!user) return
+    try {
+      await respondToStudyGroupInvite(invite.id, user.uid, accept)
+      toast.success(
+        accept
+          ? `You joined “${invite.studyGroupTitle}”. Open Community → Study groups to chat.`
+          : "Invite declined."
+      )
+    } catch (e) {
+      console.error(e)
+      toast.error("Could not update the invite. Try again.")
+    }
+  }
 
   useEffect(() => {
     if (isTeacherMode && user) {
@@ -358,6 +389,65 @@ export default function DashboardPage() {
             : "Track your progress in high school mathematics"}
         </p>
       </div>
+
+      {user && studyGroupInvites.length > 0 && (
+        <div className="mb-10 rounded-3xl border-4 border-[#006B6B]/30 bg-[#FFC971]/90 p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.12)] md:p-8">
+          <div className="mb-4 flex items-center gap-3 border-b-4 border-black/10 pb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-white text-[#006B6B]">
+              <Mail className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-[#2C2C2C]">
+                Study group invites
+              </h2>
+              <p className="text-sm font-bold text-[#2C2C2C]/60">
+                Accept to join the group, or decline to dismiss.
+              </p>
+            </div>
+          </div>
+          <ul className="space-y-4">
+            {studyGroupInvites.map((inv) => (
+              <li
+                key={inv.id}
+                className="flex flex-col gap-4 rounded-2xl border-2 border-black/10 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="font-black text-[#2C2C2C]">
+                    <span className="text-[#006B6B]">{inv.fromDisplayName}</span>
+                    {" invited you to "}
+                    <span className="uppercase tracking-tight">{inv.studyGroupTitle}</span>
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    className="bg-[#006B6B] font-bold text-white"
+                    onClick={() => void handleStudyGroupInvite(inv, true)}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black font-bold"
+                    onClick={() => void handleStudyGroupInvite(inv, false)}
+                  >
+                    Decline
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="font-bold"
+                    asChild
+                  >
+                    <Link href={`/community/studygroups/${inv.studyGroupId}`}>View group</Link>
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

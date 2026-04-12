@@ -316,6 +316,10 @@ export default function StudyGroupPage({ params }: { params: Promise<{ id: strin
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
+                          if (!draft.trim()) {
+                            toast.message("Type a message before sending.");
+                            return;
+                          }
                           void handleSendMessage();
                         }
                       }}

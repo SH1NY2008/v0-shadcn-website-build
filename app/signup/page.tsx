@@ -65,6 +65,10 @@ function SignupForm({
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    if (!email.trim() || !password) {
+      setError("Please enter both email and password.")
+      return
+    }
     setLoading(true)
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password)
