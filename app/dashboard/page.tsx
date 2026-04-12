@@ -26,7 +26,7 @@ import {
   type TeacherStatsPayload,
 } from "@/lib/teacher"
 import { joinClassWithCode, subscribeToStudentClasses } from "@/lib/student"
-import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
+import { CreateClassWorkDialog } from "@/components/create-class-work-dialog"
 import { 
   Dialog, 
   DialogContent, 
@@ -455,8 +455,8 @@ export default function DashboardPage() {
               {isTeacherMode ? (
                 <>
                   <ScrollReveal delay={0.1} yOffset={20} scaleOffset={0.02}>
-                    <CreateAssignmentDialog 
-                      teacherId={user?.uid || ""} 
+                    <CreateClassWorkDialog
+                      teacherId={user?.uid || ""}
                       classes={teacherData.classes}
                       trigger={
                         <div className="h-full cursor-pointer rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
@@ -465,6 +465,9 @@ export default function DashboardPage() {
                               <Plus className="h-6 w-6" />
                             </div>
                             <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">Create Assignment</h4>
+                            <p className="text-xs font-bold text-[#2C2C2C]/50 mt-2 leading-snug">
+                              Upload homework for a class
+                            </p>
                           </div>
                           <div className="flex items-center text-[#2C2C2C]/40 font-black text-xs uppercase tracking-wide mt-4">
                             Open Tool <ArrowRight className="ml-1 h-3 w-3" />
@@ -475,8 +478,8 @@ export default function DashboardPage() {
                   </ScrollReveal>
 
                   {[
-                    { title: "Review Submissions", icon: FileText, color: "bg-orange-500", href: "/quizzes/results" },
-                    { title: "Curriculum Editor", icon: Settings, color: "bg-purple-500", href: "/resources" },
+                    { title: "Review Submissions", icon: FileText, color: "bg-orange-500", href: "/dashboard/review-submissions" },
+                    { title: "Curriculum Editor", icon: Settings, color: "bg-purple-500", href: "/dashboard/curriculum-editor" },
                     { title: "Student Roster", icon: Users, color: "bg-green-500", href: "/dashboard/roster" },
                   ].map((tool, i) => (
                     <ScrollReveal key={tool.title} delay={0.2 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>

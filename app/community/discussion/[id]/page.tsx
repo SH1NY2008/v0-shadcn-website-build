@@ -30,6 +30,7 @@ import { useTeacherMode } from "@/context/teacher-mode-context";
 import { cn } from "@/lib/utils";
 import { DiscussionSkeleton } from "@/components/discussion-skeleton";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
+import Link from "next/link";
 
 const VoteButton = ({ onClick, voted, count, children }: { onClick: () => void, voted: boolean, count: number, children: React.ReactNode }) => (
   <button onClick={onClick} className={cn(
@@ -211,7 +212,16 @@ export default function DiscussionThreadPage({ params }: { params: Promise<{ id:
   }
 
   if (!topic) {
-    return <div>Topic not found</div>;
+    return (
+      <PageLayout>
+        <div className="py-20 text-center">
+          <p className="text-2xl font-black text-[#2C2C2C]">Topic not found</p>
+          <Button asChild className="mt-6 bg-[#006B6B] text-white font-bold">
+            <Link href="/community/discussion">Back to discussions</Link>
+          </Button>
+        </div>
+      </PageLayout>
+    );
   }
 
   return (
@@ -227,6 +237,14 @@ export default function DiscussionThreadPage({ params }: { params: Promise<{ id:
 
       <div className="bg-[#1a1a1a] p-8 md:p-12 rounded-b-2xl">
         <div className="max-w-4xl mx-auto">
+          {!user && (
+            <div className="mb-8 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-sm font-bold text-amber-100">
+              <Link href="/login" className="text-amber-300 underline underline-offset-2">
+                Sign in
+              </Link>{" "}
+              to post and reply in this thread.
+            </div>
+          )}
           {user && (
             <div className="mb-8 flex items-start space-x-4 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
               <Avatar className="w-12 h-12 border-2 border-gray-600 shadow-lg">

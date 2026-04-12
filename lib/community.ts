@@ -1,6 +1,6 @@
 
 import { db, storage } from "./firebase";
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment, Timestamp, writeBatch } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, addDoc, setDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment, Timestamp, writeBatch } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 /** Sort key for posts (handles Firestore Timestamp, Date, or plain objects with seconds). */
@@ -81,6 +81,8 @@ export interface PeerReview {
     /** Public download URL (Firebase Storage). */
     paperDownloadUrl?: string;
     paperStoragePath?: string;
+    /** MIME type of uploaded paper (helps preview images/PDF). */
+    paperContentType?: string;
 }
 
 export interface RubricItem {
@@ -127,6 +129,7 @@ export async function attachPeerReviewPaper(peerReviewId: string, file: File): P
     paperFileName: file.name,
     paperDownloadUrl: url,
     paperStoragePath: path,
+    paperContentType: file.type || "application/octet-stream",
   });
 }
 
@@ -384,6 +387,29 @@ export async function getStudyGroups(): Promise<StudyGroup[]> {
     });
 }
 
+/** Live list for study groups index (join/leave and new groups update without refresh). */
+export function subscribeToStudyGroups(callback: (groups: StudyGroup[]) => void) {
+  const studyGroupsCol = collection(db, "studygroups");
+  return onSnapshot(
+    studyGroupsCol,
+    (snapshot) => {
+      const list = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          members: Array.isArray(data.members) ? data.members : [],
+        } as StudyGroup;
+      });
+      callback(list);
+    },
+    (err) => {
+      console.error("subscribeToStudyGroups:", err);
+      callback([]);
+    }
+  );
+}
+
 export async function getStudyGroup(id: string): Promise<StudyGroup | null> {
     const studyGroupRef = doc(db, "studygroups", id);
     const studyGroupSnap = await getDoc(studyGroupRef);
@@ -447,6 +473,12 @@ export async function getStudyGroupMembers(studyGroupId: string): Promise<Member
               name: user.displayName || user.email || "Student",
               avatar: user.photoURL || "",
             });
+        } else {
+            members.push({
+              id: userId,
+              name: "Community member",
+              avatar: "",
+            });
         }
     }
     return members;
@@ -464,6 +496,40 @@ export async function getPeerReviews(): Promise<PeerReview[]> {
     const peerReviewSnapshot = await getDocs(peerReviewsCol);
     const peerReviewList = peerReviewSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PeerReview));
     return peerReviewList;
+}
+
+/** Live list for peer review index (new submissions appear without refresh). */
+export function subscribeToPeerReviews(callback: (reviews: PeerReview[]) => void) {
+  const peerReviewsCol = collection(db, "peer-reviews");
+  return onSnapshot(
+    peerReviewsCol,
+    (snapshot) => {
+      const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as PeerReview));
+      callback(list);
+    },
+    (err) => {
+      console.error("subscribeToPeerReviews:", err);
+      callback([]);
+    }
+  );
+}
+
+/** One-shot counts for the community hub cards (topics, groups, peer reviews). */
+export async function getCommunityHubCounts(): Promise<{
+  topics: number;
+  studyGroups: number;
+  peerReviews: number;
+}> {
+  const [topicsSnap, sgSnap, prSnap] = await Promise.all([
+    getDocs(collection(db, "topics")),
+    getDocs(collection(db, "studygroups")),
+    getDocs(collection(db, "peer-reviews")),
+  ]);
+  return {
+    topics: topicsSnap.size,
+    studyGroups: sgSnap.size,
+    peerReviews: prSnap.size,
+  };
 }
 
 export async function getPeerReview(id: string): Promise<PeerReview | null> {
@@ -485,11 +551,33 @@ export async function getRubric(peerReviewId: string): Promise<RubricItem[]> {
 export async function createPeerReview(
   peerReview: Omit<PeerReview, "id">,
   rubric: Omit<RubricItem, "id">[],
-  rubricFiles?: (File | null | undefined)[]
+  rubricFiles?: (File | null | undefined)[],
+  paperFile?: File | null
 ): Promise<string> {
   const peerReviewsCol = collection(db, "peer-reviews");
-  const newPeerReviewRef = await addDoc(peerReviewsCol, peerReview);
-  const rubricCol = collection(db, "peer-reviews", newPeerReviewRef.id, "rubric");
+  const newPeerReviewRef = doc(peerReviewsCol);
+  const id = newPeerReviewRef.id;
+
+  let paperFields: Partial<PeerReview> = {};
+  if (paperFile && paperFile.size > 0) {
+    const safeName = sanitizePaperFileName(paperFile.name);
+    const path = `peer-reviews/${id}/${Date.now()}_${safeName}`;
+    const ref = storageRef(storage, path);
+    await uploadBytes(ref, paperFile, {
+      contentType: paperFile.type || "application/octet-stream",
+    });
+    const url = await getDownloadURL(ref);
+    paperFields = {
+      paperFileName: paperFile.name,
+      paperDownloadUrl: url,
+      paperStoragePath: path,
+      paperContentType: paperFile.type || undefined,
+    };
+  }
+
+  await setDoc(newPeerReviewRef, { ...peerReview, ...paperFields });
+
+  const rubricCol = collection(db, "peer-reviews", id, "rubric");
   for (let i = 0; i < rubric.length; i++) {
     const item = rubric[i];
     const file = rubricFiles?.[i];
@@ -501,10 +589,10 @@ export async function createPeerReview(
     const maxScore = Number.isFinite(item.maxScore) ? item.maxScore : 0;
     const rubricDocRef = await addDoc(rubricCol, { criterion, maxScore });
     if (hasFile) {
-      await attachRubricItemFile(newPeerReviewRef.id, rubricDocRef.id, file!);
+      await attachRubricItemFile(id, rubricDocRef.id, file!);
     }
   }
-  return newPeerReviewRef.id;
+  return id;
 }
 
 export async function createReview(peerReviewId: string, review: Omit<Review, "id" | "createdAt">) {

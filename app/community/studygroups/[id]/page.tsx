@@ -110,7 +110,7 @@ export default function StudyGroupPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  const isMember = members.some((member) => member.id === user?.uid);
+  const isMember = !!(user && studyGroup.members.includes(user.uid));
 
   return (
     <PageLayout>

@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { BookOpen, Play, Calculator } from "lucide-react"
 import { curriculum } from "@/lib/curriculum"
+import { mergeCourses, subscribeCurriculumSettings } from "@/lib/curriculum-settings"
 import { apCourses } from "@/lib/ap-courses"
 import Link from "next/link"
 import { CourseProgressBadge } from "@/components/course-progress-badge"
 import { TopicProgressButton } from "@/components/topic-progress-button"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { VideoPlayerDialog } from "@/components/video-player-dialog"
 import { Input } from "@/components/ui/input"
 
@@ -134,7 +135,15 @@ const OPENSTAX_RESOURCES = [
 
 export default function ResourcesPage() {
   const [selectedVideo, setSelectedVideo] = useState<{ id: string, title: string } | null>(null)
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
+  const [mergedCurriculum, setMergedCurriculum] = useState(curriculum)
+
+  useEffect(() => {
+    const unsub = subscribeCurriculumSettings((s) => {
+      setMergedCurriculum(mergeCourses(curriculum, s))
+    })
+    return () => unsub()
+  }, [])
 
   const filteredResources = useMemo(() => {
     return OPENSTAX_RESOURCES.filter(resource =>
@@ -154,7 +163,7 @@ export default function ResourcesPage() {
   ];
 
   const allCourses = [
-    ...curriculum,
+    ...mergedCurriculum,
     ...apCourses.flatMap(course => {
       if (categoryIds.includes(course.id)) {
         return course.units.map(unit => ({

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 // Define types for Web Speech API
@@ -17,6 +17,8 @@ export function useVoiceNavigation() {
   const [error, setError] = useState<string | null>(null)
   const [isSupported, setIsSupported] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
+  /** Sync guard — isListening only flips in onstart/onend, so double-clicks can call start() twice. */
+  const recognitionActiveRef = useRef(false)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -32,11 +34,13 @@ export function useVoiceNavigation() {
         recognitionInstance.maxAlternatives = 1
 
         recognitionInstance.onstart = () => {
+          recognitionActiveRef.current = true
           setIsListening(true)
           setError(null)
         }
 
         recognitionInstance.onend = () => {
+          recognitionActiveRef.current = false
           setIsListening(false)
         }
 
@@ -73,10 +77,20 @@ export function useVoiceNavigation() {
           } else {
             setError(`Error: ${event.error}`)
           }
+          recognitionActiveRef.current = false
           setIsListening(false)
         }
 
         setRecognition(recognitionInstance)
+
+        return () => {
+          recognitionActiveRef.current = false
+          try {
+            recognitionInstance.stop()
+          } catch {
+            /* already stopped */
+          }
+        }
       } else {
         setIsSupported(false)
         setError("Voice navigation is not supported in this browser.")
@@ -105,18 +119,27 @@ export function useVoiceNavigation() {
   }, [router])
 
   const startListening = useCallback(() => {
-    if (recognition) {
-      if (!navigator.onLine) {
-        setError("You are offline. Voice navigation requires an internet connection.")
+    if (!recognition) {
+      setError("Speech recognition not supported in this browser.")
+      return
+    }
+    if (!navigator.onLine) {
+      setError("You are offline. Voice navigation requires an internet connection.")
+      return
+    }
+    if (recognitionActiveRef.current) {
+      return
+    }
+    try {
+      recognitionActiveRef.current = true
+      recognition.start()
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "InvalidStateError") {
+        setIsListening(true)
         return
       }
-      try {
-        recognition.start()
-      } catch (e) {
-        console.error("Error starting recognition:", e)
-      }
-    } else {
-      setError("Speech recognition not supported in this browser.")
+      recognitionActiveRef.current = false
+      console.error("Error starting recognition:", e)
     }
   }, [recognition])
 

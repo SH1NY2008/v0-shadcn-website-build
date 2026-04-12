@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getStudyGroups, createStudyGroup, deleteStudyGroup, type StudyGroup } from "@/lib/community";
+import { subscribeToStudyGroups, createStudyGroup, deleteStudyGroup, type StudyGroup } from "@/lib/community";
 import { useTeacherMode } from "@/context/teacher-mode-context";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { toast } from "sonner";
@@ -44,12 +44,11 @@ export default function StudyGroupsPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchStudyGroups() {
-      const groups = await getStudyGroups();
+    const unsub = subscribeToStudyGroups((groups) => {
       setStudyGroups(groups);
       setLoading(false);
-    }
-    fetchStudyGroups();
+    });
+    return () => unsub();
   }, []);
 
   const handleCreateGroup = async () => {
@@ -59,8 +58,6 @@ export default function StudyGroupsPage() {
     setNewGroupTitle("");
     setNewGroupDescription("");
     setIsCreateGroupOpen(false);
-    const groups = await getStudyGroups();
-    setStudyGroups(groups);
   };
 
   const handleConfirmDelete = async () => {
@@ -139,7 +136,15 @@ export default function StudyGroupsPage() {
           </Dialog>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {studyGroups.length === 0 ? (
+        <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
+          <p className="text-xl font-black text-[#2C2C2C]">No study groups yet</p>
+          <p className="mt-2 font-bold text-[#2C2C2C]/60">
+            {user ? "Create the first group with the button above." : "Sign in to create a study group."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {studyGroups.map((group) => (
           <div key={group.id} className="relative">
             {userRole === "teacher" && (
@@ -173,7 +178,8 @@ export default function StudyGroupsPage() {
             </Link>
           </div>
         ))}
-      </div>
+        </div>
+      )}
       <ConfirmationDialog
         open={!!deleteTargetId}
         onOpenChange={() => setDeleteTargetId(null)}

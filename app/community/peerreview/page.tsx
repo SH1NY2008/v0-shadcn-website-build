@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  getPeerReviews,
+  subscribeToPeerReviews,
   createPeerReview,
-  attachPeerReviewPaper,
   type PeerReview,
 } from "@/lib/community";
 import { toast } from "sonner";
@@ -50,12 +49,11 @@ export default function PeerReviewPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchPeerReviews() {
-      const reviews = await getPeerReviews();
+    const unsub = subscribeToPeerReviews((reviews) => {
       setPeerReviews(reviews);
       setLoading(false);
-    }
-    fetchPeerReviews();
+    });
+    return () => unsub();
   }, []);
 
   const handleAddRubricItem = () => {
@@ -96,7 +94,7 @@ export default function PeerReviewPage() {
 
     setIsSubmitting(true);
     try {
-      const id = await createPeerReview(
+      await createPeerReview(
         {
           title: newReviewTitle.trim(),
           submission: notes,
@@ -105,19 +103,15 @@ export default function PeerReviewPage() {
           status: "Pending Review",
         },
         rubricItems.map(({ criterion, maxScore }) => ({ criterion, maxScore })),
-        rubricItems.map((r) => r.file)
+        rubricItems.map((r) => r.file),
+        paperFile
       );
-      if (paperFile) {
-        await attachPeerReviewPaper(id, paperFile);
-      }
       toast.success("Submission posted for peer review.");
       setNewReviewTitle("");
       setNewReviewSubmission("");
       setPaperFile(null);
       setRubricItems([]);
       setIsSubmitDialogOpen(false);
-      const reviews = await getPeerReviews();
-      setPeerReviews(reviews);
     } catch (e) {
       console.error(e);
       toast.error(
@@ -143,10 +137,18 @@ export default function PeerReviewPage() {
 
   return (
     <PageLayout>
-        <div className="flex justify-between items-center mb-8 border-b-4 border-black/10 pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8 border-b-4 border-black/10 pb-6">
             <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85]">
                 Peer Review
             </h1>
+            {!user && (
+              <p className="max-w-md text-sm font-bold text-[#2C2C2C]/70 sm:text-right">
+                <Link href="/login" className="text-[#006B6B] underline underline-offset-2">
+                  Sign in
+                </Link>{" "}
+                to submit your work for peer review.
+              </p>
+            )}
             {user && (
                 <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
                     <DialogTrigger asChild>
@@ -170,13 +172,13 @@ export default function PeerReviewPage() {
                                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-black/30 bg-white/80 px-4 py-6 transition hover:bg-white">
                                     <Upload className="mb-2 h-8 w-8 text-[#006B6B]" />
                                     <span className="text-center text-sm font-bold text-[#2C2C2C]">
-                                      {paperFile ? paperFile.name : "PDF, Word, or other document"}
+                                      {paperFile ? paperFile.name : "PDF, Word, images, or other files"}
                                     </span>
                                     <input
                                       id="paper"
                                       type="file"
                                       className="sr-only"
-                                      accept=".pdf,.doc,.docx,.txt,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                      accept=".pdf,.doc,.docx,.txt,.rtf,image/*,.png,.jpg,.jpeg,.gif,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                       onChange={(e) => setPaperFile(e.target.files?.[0] ?? null)}
                                     />
                                   </label>
@@ -219,7 +221,7 @@ export default function PeerReviewPage() {
                                           <input
                                             type="file"
                                             className="sr-only"
-                                            accept=".pdf,.doc,.docx,.txt,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            accept=".pdf,.doc,.docx,.txt,.rtf,image/*,.png,.jpg,.jpeg,.gif,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                             onChange={(e) => handleRubricFileChange(index, e.target.files?.[0] ?? null)}
                                           />
                                         </label>
@@ -247,33 +249,43 @@ export default function PeerReviewPage() {
                 </Dialog>
             )}
         </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {peerReviews.map((assignment) => (
+      {peerReviews.length === 0 ? (
+        <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
+          <p className="text-xl font-black text-[#2C2C2C]">No peer reviews yet</p>
+          <p className="mt-2 font-bold text-[#2C2C2C]/60">
+            Be the first to submit a paper, or check back after classmates post.
+          </p>
+          {!user && (
+            <Button asChild className="mt-6 bg-[#006B6B] font-bold text-white border-2 border-black">
+              <Link href="/login">Sign in to submit</Link>
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {peerReviews.map((assignment) => (
             <Link href={`/community/peerreview/${assignment.id}`} key={assignment.id}>
-                <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
-                    <div>
-                        <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
-                            {assignment.title}
-                        </h3>
-                        <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">
-                            Author: {assignment.author}
-                        </p>
-                        <p className="text-lg font-bold text-[#2C2C2C]/60">
-                            Status: {assignment.status}
-                        </p>
-                        {assignment.paperDownloadUrl && (
-                          <p className="mt-2 inline-flex items-center gap-1 text-sm font-black uppercase tracking-wide text-[#006B6B]">
-                            <FileText className="h-4 w-4" /> Paper attached
-                          </p>
-                        )}
-                    </div>
-                    <Button className="mt-8 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        Start Review
-                    </Button>
+              <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
+                <div>
+                  <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+                    {assignment.title}
+                  </h3>
+                  <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">Author: {assignment.author}</p>
+                  <p className="text-lg font-bold text-[#2C2C2C]/60">Status: {assignment.status}</p>
+                  {assignment.paperDownloadUrl && (
+                    <p className="mt-2 inline-flex items-center gap-1 text-sm font-black uppercase tracking-wide text-[#006B6B]">
+                      <FileText className="h-4 w-4" /> Paper attached
+                    </p>
+                  )}
                 </div>
+                <Button className="mt-8 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {user?.uid === assignment.authorId ? "View your submission" : "Open"}
+                </Button>
+              </div>
             </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </PageLayout>
   );
 }

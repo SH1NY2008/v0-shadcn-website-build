@@ -6,20 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { use, useEffect, useState } from "react";
 import {
-  getPeerReview,
-  getRubric,
   createReview,
   subscribeToPeerReviewComments,
   type PeerReview,
   type RubricItem,
   type Review,
 } from "@/lib/community";
-import { auth } from "@/lib/firebase";
+import { collection, doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Download, User as UserIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+
+function isImageSubmission(pr: PeerReview): boolean {
+  const t = pr.paperContentType || "";
+  if (t.startsWith("image/")) return true;
+  const n = (pr.paperFileName || "").toLowerCase();
+  return /\.(png|jpe?g|gif|webp|bmp|svg|heic|avif)$/i.test(n);
+}
+
+function isPdfSubmission(pr: PeerReview): boolean {
+  const t = pr.paperContentType || "";
+  if (t.includes("pdf")) return true;
+  return (pr.paperFileName || "").toLowerCase().endsWith(".pdf");
+}
 
 export default function PeerReviewSessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -39,16 +51,35 @@ export default function PeerReviewSessionPage({ params }: { params: Promise<{ id
   }, []);
 
   useEffect(() => {
-    async function fetchData() {
-      const review = await getPeerReview(id);
-      setPeerReview(review);
-      if (review) {
-        const rubricItems = await getRubric(id);
-        setRubric(rubricItems);
+    const ref = doc(db, "peer-reviews", id);
+    const unsubDoc = onSnapshot(
+      ref,
+      (snap) => {
+        if (snap.exists()) {
+          setPeerReview({ id: snap.id, ...snap.data() } as PeerReview);
+        } else {
+          setPeerReview(null);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error("peer review snapshot:", err);
+        setLoading(false);
       }
-      setLoading(false);
-    }
-    fetchData();
+    );
+    const rubricCol = collection(db, "peer-reviews", id, "rubric");
+    const unsubRubric = onSnapshot(
+      rubricCol,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as RubricItem));
+        setRubric(list);
+      },
+      (err) => console.error("rubric snapshot:", err)
+    );
+    return () => {
+      unsubDoc();
+      unsubRubric();
+    };
   }, [id]);
 
   useEffect(() => {
@@ -129,12 +160,31 @@ export default function PeerReviewSessionPage({ params }: { params: Promise<{ id
         <div className="lg:col-span-2 space-y-8">
             <div>
                 <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Submission</h2>
+                {peerReview.paperDownloadUrl && isImageSubmission(peerReview) && (
+                  <div className="mt-4 overflow-hidden rounded-xl border-4 border-black bg-white p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.12)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={peerReview.paperDownloadUrl}
+                      alt={peerReview.paperFileName || "Submitted image"}
+                      className="mx-auto max-h-[min(75vh,900px)] w-auto max-w-full object-contain"
+                    />
+                  </div>
+                )}
+                {peerReview.paperDownloadUrl && isPdfSubmission(peerReview) && (
+                  <div className="mt-4 h-[min(70vh,720px)] w-full overflow-hidden rounded-xl border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.12)]">
+                    <iframe
+                      title="PDF submission"
+                      src={peerReview.paperDownloadUrl}
+                      className="h-full min-h-[480px] w-full"
+                    />
+                  </div>
+                )}
                 {peerReview.paperDownloadUrl && (
                   <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border-2 border-black bg-white p-4">
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <Download className="h-6 w-6 shrink-0 text-[#006B6B]" />
                       <div className="min-w-0">
-                        <p className="font-black text-[#2C2C2C]">Paper</p>
+                        <p className="font-black text-[#2C2C2C]">File</p>
                         <p className="truncate text-sm font-bold text-[#2C2C2C]/60">
                           {peerReview.paperFileName || "Download file"}
                         </p>
@@ -144,8 +194,8 @@ export default function PeerReviewSessionPage({ params }: { params: Promise<{ id
                       className="shrink-0 bg-[#006B6B] font-bold text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)]"
                       asChild
                     >
-                      <a href={peerReview.paperDownloadUrl} target="_blank" rel="noopener noreferrer" download>
-                        Download paper
+                      <a href={peerReview.paperDownloadUrl} target="_blank" rel="noopener noreferrer">
+                        Open / download
                       </a>
                     </Button>
                   </div>
@@ -244,6 +294,11 @@ export default function PeerReviewSessionPage({ params }: { params: Promise<{ id
             <div>
                 <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Rubric</h2>
                 <div className="mt-4 p-6 bg-[#FFC971] rounded-2xl border-4 border-black space-y-4">
+                    {rubric.length === 0 && (
+                      <p className="text-sm font-bold text-[#2C2C2C]/60">
+                        No rubric rows were added for this submission.
+                      </p>
+                    )}
                     {rubric.map((item) => (
                         <div key={item.id}>
                         <p className="text-xl font-black text-[#2C2C2C]">{item.criterion}</p>
