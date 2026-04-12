@@ -31,6 +31,10 @@ export async function joinClassWithCode(studentId: string, classCode: string): P
 
   const classDoc = querySnapshot.docs[0];
   const classId = classDoc.id;
+  const existing = classDoc.data()?.students as string[] | undefined;
+  if (existing?.includes(studentId)) {
+    return { id: classId, ...classDoc.data() };
+  }
 
   // Add student to class
   const classRef = doc(db, "classes", classId);
@@ -57,7 +61,9 @@ export function subscribeToStudentClasses(studentId: string, callback: (classes:
         return getDoc(doc(db, "classes", classId));
       });
       const classDocs = await Promise.all(classPromises);
-      const classesData = classDocs.filter(d => d.exists()).map(d => d.data() as ClassData);
+      const classesData = classDocs
+        .filter((d) => d.exists())
+        .map((d) => ({ id: d.id, ...d.data() } as ClassData));
       callback(classesData);
     } else {
       callback([]);

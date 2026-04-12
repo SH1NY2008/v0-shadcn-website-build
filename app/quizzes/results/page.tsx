@@ -1,16 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { PageLayout } from "@/components/page-layout"
 import { auth, db } from "@/lib/firebase"
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore"
+import { cn } from "@/lib/utils"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { useTeacherMode } from "@/context/teacher-mode-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, GraduationCap, Calendar, User as UserIcon, BarChart3 } from "lucide-react"
+import { ArrowLeft, User as UserIcon, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -22,44 +22,124 @@ interface QuizResult {
   score: number
   totalQuestions: number
   percentage: number
+  /** Class IDs the student belonged to when the attempt was saved (from `users/{uid}.classes`). */
+  classIds?: string[]
   completedAt: any
 }
 
 export default function QuizResultsPage() {
   const router = useRouter()
-  const { isTeacherMode, userRole } = useTeacherMode()
+  const { userRole, isRoleResolved } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
-  const [results, setResults] = useState<QuizResult[]>([])
+  const [authReady, setAuthReady] = useState(false)
+  const [rawResults, setRawResults] = useState<QuizResult[]>([])
+  const [rosterStudentIds, setRosterStudentIds] = useState<Set<string>>(new Set())
+  const [classNameById, setClassNameById] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
 
+  const results = useMemo(() => {
+    if (rosterStudentIds.size === 0) return []
+    return rawResults.filter((r) => r.userId && rosterStudentIds.has(r.userId))
+  }, [rawResults, rosterStudentIds])
+
+  const formatClassLabels = (ids?: string[]) => {
+    if (!ids?.length) return "—"
+    const labels = ids
+      .map((id) => classNameById.get(id))
+      .filter((n): n is string => Boolean(n))
+    return labels.length ? labels.join(", ") : "—"
+  }
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u))
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u)
+      setAuthReady(true)
+    })
     return () => unsub()
   }, [])
 
   useEffect(() => {
-    if (!user || userRole !== "teacher") return
+    if (!user || !isRoleResolved || userRole !== "teacher") return
 
-    // Fetch all quiz results (in a real app, you'd filter by the teacher's students)
-    const q = query(
-      collection(db, "quiz_results"),
-      orderBy("completedAt", "desc")
-    )
-
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as QuizResult[]
-      setResults(data)
-      setLoading(false)
-    }, (error) => {
-      console.error("Error listening to quiz results:", error)
-      setLoading(false)
+    const cq = query(collection(db, "classes"), where("teacherId", "==", user.uid))
+    const unsubClasses = onSnapshot(cq, (snap) => {
+      const ids = new Set<string>()
+      const names = new Map<string, string>()
+      snap.docs.forEach((d) => {
+        const data = d.data()
+        names.set(d.id, (data.name as string) || "Class")
+        const students = data.students as string[] | undefined
+        students?.forEach((id) => ids.add(id))
+      })
+      setRosterStudentIds(ids)
+      setClassNameById(names)
     })
 
+    return () => unsubClasses()
+  }, [user, userRole, isRoleResolved])
+
+  useEffect(() => {
+    if (!user || !isRoleResolved || userRole !== "teacher") return
+
+    const q = query(collection(db, "quiz_results"), orderBy("completedAt", "desc"))
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const data = snap.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as QuizResult
+        )
+        setRawResults(data)
+        setLoading(false)
+      },
+      (error) => {
+        console.error("Error listening to quiz results:", error)
+        setLoading(false)
+      }
+    )
+
     return () => unsub()
-  }, [user, userRole])
+  }, [user, userRole, isRoleResolved])
+
+  if (!authReady) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] animate-pulse">
+          <p className="text-xl font-black text-[#2C2C2C]/50 uppercase tracking-widest">Loading…</p>
+        </div>
+      </PageLayout>
+    )
+  }
+
+  if (!user) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <h2 className="text-2xl font-bold mb-4">Sign in required</h2>
+          <p className="text-[#2C2C2C]/60 mb-8 font-bold text-center max-w-md">
+            Sign in with a teacher account to view class quiz results.
+          </p>
+          <Button onClick={() => router.push("/login")} className="bg-[#006B6B] text-white font-bold">
+            Go to login
+          </Button>
+        </div>
+      </PageLayout>
+    )
+  }
+
+  if (!isRoleResolved) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] animate-pulse">
+          <p className="text-xl font-black text-[#2C2C2C]/50 uppercase tracking-widest">Loading your profile…</p>
+        </div>
+      </PageLayout>
+    )
+  }
 
   if (userRole !== "teacher") {
     return (
@@ -67,7 +147,8 @@ export default function QuizResultsPage() {
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
           <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
           <p className="text-[#2C2C2C]/60 mb-8 font-bold text-center max-w-md">
-            Only teachers can access the quiz results dashboard.
+            Your account does not have the teacher role in Firestore. If you should be a teacher, ask an admin to set{" "}
+            <code className="rounded bg-black/5 px-1">role</code> to <code className="rounded bg-black/5 px-1">teacher</code> on your user document, or create a new account with the teacher option at signup.
           </p>
           <Button onClick={() => router.push("/dashboard")} className="bg-[#006B6B] text-white font-bold">
             Return to Dashboard
@@ -112,8 +193,14 @@ export default function QuizResultsPage() {
           </div>
         ) : results.length === 0 ? (
           <div className="p-20 text-center">
-            <p className="text-2xl font-black text-[#2C2C2C]/40 uppercase tracking-widest">No results yet</p>
-            <p className="text-[#006B6B] font-bold mt-2">When students complete quizzes, their scores will appear here.</p>
+            <p className="text-2xl font-black text-[#2C2C2C]/40 uppercase tracking-widest">
+              {rosterStudentIds.size === 0 ? "No students in your classes yet" : "No results yet"}
+            </p>
+            <p className="text-[#006B6B] font-bold mt-2">
+              {rosterStudentIds.size === 0
+                ? "Share your class codes so students can join—then their quiz scores will show up here."
+                : "When students complete quizzes, their scores will appear here."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -121,6 +208,7 @@ export default function QuizResultsPage() {
               <TableHeader className="bg-black/5">
                 <TableRow className="border-b-4 border-black/5 hover:bg-transparent">
                   <TableHead className="py-6 px-6 font-black uppercase tracking-wider text-[#2C2C2C]">Student</TableHead>
+                  <TableHead className="py-6 px-6 font-black uppercase tracking-wider text-[#2C2C2C]">Class</TableHead>
                   <TableHead className="py-6 px-6 font-black uppercase tracking-wider text-[#2C2C2C]">Category</TableHead>
                   <TableHead className="py-6 px-6 font-black uppercase tracking-wider text-[#2C2C2C]">Score</TableHead>
                   <TableHead className="py-6 px-6 font-black uppercase tracking-wider text-[#2C2C2C]">Percentage</TableHead>
@@ -137,6 +225,11 @@ export default function QuizResultsPage() {
                         </div>
                         <span className="font-bold text-lg text-[#2C2C2C]">{result.userName || "Anonymous Student"}</span>
                       </div>
+                    </TableCell>
+                    <TableCell className="py-6 px-6 max-w-[200px]">
+                      <span className="font-bold text-sm text-[#2C2C2C]/80 line-clamp-2" title={formatClassLabels(result.classIds)}>
+                        {formatClassLabels(result.classIds)}
+                      </span>
                     </TableCell>
                     <TableCell className="py-6 px-6">
                       <Badge className="bg-[#006B6B]/10 text-[#006B6B] border-none font-bold px-3 py-1 rounded-lg uppercase text-xs tracking-wider">
@@ -172,8 +265,4 @@ export default function QuizResultsPage() {
       </div>
     </PageLayout>
   )
-}
-
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(" ")
 }

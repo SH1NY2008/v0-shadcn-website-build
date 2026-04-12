@@ -32,7 +32,13 @@ export default function DiscussionPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <PageLayout>
+        <div className="py-20 text-center animate-pulse">
+          <p className="text-[#2C2C2C]/60 font-bold uppercase tracking-widest">Loading discussions…</p>
+        </div>
+      </PageLayout>
+    );
   }
 
   return (

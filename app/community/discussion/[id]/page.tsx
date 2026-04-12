@@ -11,6 +11,21 @@ import { onPostsUpdate, getTopic, createPost, createReply, deletePost, deleteRep
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { formatDistanceToNow } from 'date-fns';
+
+function formatPostTime(createdAt: Post['createdAt'] | Reply['createdAt']): string {
+  if (!createdAt) return "";
+  const c = createdAt as { seconds?: number; toDate?: () => Date };
+  if (typeof c.seconds === "number") {
+    return formatDistanceToNow(new Date(c.seconds * 1000), { addSuffix: true });
+  }
+  if (typeof c.toDate === "function") {
+    return formatDistanceToNow(c.toDate(), { addSuffix: true });
+  }
+  if (createdAt instanceof Date) {
+    return formatDistanceToNow(createdAt, { addSuffix: true });
+  }
+  return "";
+}
 import { useTeacherMode } from "@/context/teacher-mode-context";
 import { cn } from "@/lib/utils";
 import { DiscussionSkeleton } from "@/components/discussion-skeleton";
@@ -59,21 +74,19 @@ const PostItem = ({ post, onReply, onDelete, onTogglePin, onVote, isReply = fals
       <div className={`flex items-start space-x-4`}>
           <Avatar className="w-10 h-10 border-2 border-gray-700 shadow-md">
               <AvatarImage src={post.avatar} />
-              <AvatarFallback>{post.author.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{(post.author || "?").charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
               <div className="flex items-center space-x-2">
                   <p className="font-bold text-base text-white">{post.author}</p>
-                  <p className="text-xs text-gray-400">
-                      • {post.createdAt ? formatDistanceToNow(new Date(post.createdAt.seconds * 1000), { addSuffix: true }) : ''}
-                  </p>
+                  <p className="text-xs text-gray-400">• {formatPostTime(post.createdAt)}</p>
               </div>
               <p className="mt-2 text-base text-gray-300">{post.message}</p>
               <div className="flex items-center space-x-4 mt-3 text-xs font-bold">
-                  <VoteButton onClick={handleUpvote} voted={upvoted} count={post.upvotes}>
+                  <VoteButton onClick={handleUpvote} voted={upvoted} count={post.upvotes ?? 0}>
                       <ThumbsUp className="w-4 h-4" />
                   </VoteButton>
-                  <VoteButton onClick={handleDownvote} voted={downvoted} count={post.downvotes}>
+                  <VoteButton onClick={handleDownvote} voted={downvoted} count={post.downvotes ?? 0}>
                       <ThumbsDown className="w-4 h-4" />
                   </VoteButton>
 

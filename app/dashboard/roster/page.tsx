@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { PageLayout } from "@/components/page-layout"
 import { auth, db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs, documentId } from "firebase/firestore"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { useTeacherMode } from "@/context/teacher-mode-context"
 import { getTeacherClasses } from "@/lib/teacher"
@@ -25,18 +25,22 @@ interface Student {
 
 export default function RosterPage() {
   const router = useRouter()
-  const { isTeacherMode, userRole } = useTeacherMode()
+  const { userRole, isRoleResolved } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
+  const [authReady, setAuthReady] = useState(false)
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u))
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u)
+      setAuthReady(true)
+    })
     return () => unsub()
   }, [])
 
   useEffect(() => {
-    if (!user || userRole !== "teacher") return
+    if (!user || !isRoleResolved || userRole !== "teacher") return
 
     const fetchStudents = async () => {
       setLoading(true)
@@ -56,8 +60,8 @@ export default function RosterPage() {
           studentChunks.push(studentUids.slice(i, i + 30));
         }
 
-        const studentPromises = studentChunks.map(chunk => 
-          getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
+        const studentPromises = studentChunks.map(chunk =>
+          getDocs(query(collection(db, "users"), where(documentId(), "in", chunk)))
         );
 
         const studentSnapshots = await Promise.all(studentPromises);
@@ -74,13 +78,49 @@ export default function RosterPage() {
     }
 
     fetchStudents()
-  }, [user, userRole])
+  }, [user, userRole, isRoleResolved])
+
+  if (!authReady) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] animate-pulse">
+          <p className="text-xl font-black text-[#2C2C2C]/50 uppercase tracking-widest">Loading…</p>
+        </div>
+      </PageLayout>
+    )
+  }
+
+  if (!user) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <h2 className="text-2xl font-bold mb-4">Sign in required</h2>
+          <Button onClick={() => router.push("/login")} className="bg-[#006B6B] text-white font-bold">
+            Go to login
+          </Button>
+        </div>
+      </PageLayout>
+    )
+  }
+
+  if (!isRoleResolved) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] animate-pulse">
+          <p className="text-xl font-black text-[#2C2C2C]/50 uppercase tracking-widest">Loading your profile…</p>
+        </div>
+      </PageLayout>
+    )
+  }
 
   if (userRole !== "teacher") {
     return (
       <PageLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
           <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <p className="text-[#2C2C2C]/60 mb-8 font-bold text-center max-w-md">
+            Your Firestore profile must have <code className="rounded bg-black/5 px-1">role: &quot;teacher&quot;</code>. Update it in the Firebase console or sign up with the teacher option.
+          </p>
           <Button onClick={() => router.push("/dashboard")} className="bg-[#006B6B] text-white font-bold">
             Return to Dashboard
           </Button>

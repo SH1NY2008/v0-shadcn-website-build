@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 import { useQuizSound } from "@/hooks/use-quiz-sound"
 import { useQuizHaptics } from "@/hooks/use-quiz-haptics"
 import { auth, db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { NotebookButton } from "@/components/notebook-button"
 import { awardXP, updateStreak } from '@/lib/gamification'
@@ -73,13 +73,25 @@ export default function QuizCategoryPage() {
 
     setSaving(true)
     try {
+      let classIds: string[] = []
+      let userName = user.displayName || user.email || "Student"
+      const profileSnap = await getDoc(doc(db, "users", user.uid))
+      if (profileSnap.exists()) {
+        const data = profileSnap.data() as { classes?: string[]; displayName?: string }
+        if (Array.isArray(data.classes)) classIds = data.classes
+        if (typeof data.displayName === "string" && data.displayName.trim()) {
+          userName = data.displayName.trim()
+        }
+      }
+
       await addDoc(collection(db, 'quiz_results'), {
         userId: user.uid,
-        userName: user.displayName,
+        userName,
         category: category,
         score: finalScore,
         totalQuestions: questions.length,
         percentage: Math.round((finalScore / questions.length) * 100),
+        classIds,
         completedAt: serverTimestamp()
       })
 
@@ -271,14 +283,17 @@ export default function QuizCategoryPage() {
                         <Calculator className="h-6 w-6" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-3/4">
-                      <DialogHeader>
-                        <DialogTitle>Graphing Calculator</DialogTitle>
+                    <DialogContent className="flex max-h-[min(90vh,820px)] w-[min(100vw-1.5rem,56rem)] max-w-none flex-col gap-0 overflow-hidden border-4 border-black/10 bg-[#FFC971] p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.15)] sm:rounded-2xl">
+                      <DialogHeader className="shrink-0 space-y-0 border-b-2 border-black/10 px-3 py-2 pr-12 text-left">
+                        <DialogTitle className="text-base font-black uppercase tracking-tight text-[#2C2C2C]">
+                          Graphing calculator
+                        </DialogTitle>
                       </DialogHeader>
-                      <div className="h-full w-full">
+                      <div className="relative h-[min(65vh,560px)] w-full min-h-[280px] bg-white">
                         <iframe
+                          title="Desmos graphing calculator"
                           src="https://www.desmos.com/calculator"
-                          className="h-full w-full border-0"
+                          className="absolute inset-0 h-full w-full border-0"
                         />
                       </div>
                     </DialogContent>

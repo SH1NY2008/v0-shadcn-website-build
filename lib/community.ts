@@ -1,6 +1,18 @@
 
-import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment } from "firebase/firestore";
+import { db, storage } from "./firebase";
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment, Timestamp, writeBatch } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+
+/** Sort key for posts (handles Firestore Timestamp, Date, or plain objects with seconds). */
+function getCreatedAtMillis(data: { createdAt?: unknown }): number {
+  const c = data.createdAt as Timestamp | Date | { seconds?: number } | undefined | null;
+  if (!c) return 0;
+  if (c instanceof Timestamp) return c.toMillis();
+  if (c instanceof Date) return c.getTime();
+  if (typeof (c as { seconds?: number }).seconds === "number")
+    return (c as { seconds: number }).seconds * 1000;
+  return 0;
+}
 
 // Types
 export interface Topic {
@@ -62,20 +74,78 @@ export interface PeerReview {
     author: string;
     authorId: string;
     status: string;
+    /** Optional notes / abstract (paper may be uploaded separately). */
     submission: string;
+    /** Original filename when a file was uploaded. */
+    paperFileName?: string;
+    /** Public download URL (Firebase Storage). */
+    paperDownloadUrl?: string;
+    paperStoragePath?: string;
 }
 
 export interface RubricItem {
     id: string;
     criterion: string;
     maxScore: number;
+    /** Optional rubric reference file (syllabus, department rubric PDF, etc.). */
+    attachmentFileName?: string;
+    attachmentDownloadUrl?: string;
+    attachmentStoragePath?: string;
 }
 
 export interface Review {
     id: string;
     reviewerId: string;
+    reviewerName?: string;
     feedback: string;
     scores: { [key: string]: number };
+    createdAt?: Timestamp | { seconds?: number };
+}
+
+function reviewTimeMs(r: Review): number {
+  const c = r.createdAt as Timestamp | { seconds?: number } | undefined;
+  if (!c) return 0;
+  if (c instanceof Timestamp) return c.toMillis();
+  if (typeof (c as { seconds?: number }).seconds === "number")
+    return (c as { seconds: number }).seconds * 1000;
+  return 0;
+}
+
+function sanitizePaperFileName(name: string): string {
+  const base = name.replace(/[^\w.\- ]+/g, "_").trim() || "paper";
+  return base.slice(0, 180);
+}
+
+/** Upload a paper file and attach download metadata to the peer-review document. */
+export async function attachPeerReviewPaper(peerReviewId: string, file: File): Promise<void> {
+  const safeName = sanitizePaperFileName(file.name);
+  const path = `peer-reviews/${peerReviewId}/${Date.now()}_${safeName}`;
+  const ref = storageRef(storage, path);
+  await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
+  const url = await getDownloadURL(ref);
+  await updateDoc(doc(db, "peer-reviews", peerReviewId), {
+    paperFileName: file.name,
+    paperDownloadUrl: url,
+    paperStoragePath: path,
+  });
+}
+
+/** Upload a file for a single rubric row and store URLs on the rubric document. */
+export async function attachRubricItemFile(
+  peerReviewId: string,
+  rubricItemId: string,
+  file: File
+): Promise<void> {
+  const safeName = sanitizePaperFileName(file.name);
+  const path = `peer-reviews/${peerReviewId}/rubric/${rubricItemId}/${Date.now()}_${safeName}`;
+  const ref = storageRef(storage, path);
+  await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
+  const url = await getDownloadURL(ref);
+  await updateDoc(doc(db, "peer-reviews", peerReviewId, "rubric", rubricItemId), {
+    attachmentFileName: file.name,
+    attachmentDownloadUrl: url,
+    attachmentStoragePath: path,
+  });
 }
 
 // Functions
@@ -88,10 +158,17 @@ export async function getTopics(): Promise<Topic[]> {
 
 export function onTopicsUpdate(callback: (topics: Topic[]) => void) {
   const topicsCol = collection(db, "topics");
-  const unsubscribe = onSnapshot(topicsCol, (snapshot) => {
-    const topicList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
-    callback(topicList);
-  });
+  const unsubscribe = onSnapshot(
+    topicsCol,
+    (snapshot) => {
+      const topicList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Topic));
+      callback(topicList);
+    },
+    (err) => {
+      console.error("onTopicsUpdate:", err);
+      callback([]);
+    }
+  );
   return unsubscribe;
 }
 
@@ -116,15 +193,22 @@ export async function getTopic(id: string): Promise<Topic | null> {
 
 export function onPostsUpdate(topicId: string, callback: (posts: Post[]) => void) {
   const postsCol = collection(db, "topics", topicId, "posts");
-  const unsubscribe = onSnapshot(postsCol, (snapshot) => {
-    const postList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-    const sortedPostList = postList.sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      return a.createdAt?.seconds - b.createdAt?.seconds;
-    });
-    callback(sortedPostList);
-  });
+  const unsubscribe = onSnapshot(
+    postsCol,
+    (snapshot) => {
+      const postList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Post));
+      const sortedPostList = postList.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return getCreatedAtMillis(a) - getCreatedAtMillis(b);
+      });
+      callback(sortedPostList);
+    },
+    (err) => {
+      console.error("onPostsUpdate:", err);
+      callback([]);
+    }
+  );
   return unsubscribe;
 }
 
@@ -135,7 +219,7 @@ export async function getPosts(topicId: string): Promise<Post[]> {
   return postList.sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return a.createdAt?.seconds - b.createdAt?.seconds;
+    return getCreatedAtMillis(a) - getCreatedAtMillis(b);
   });
 }
 
@@ -162,8 +246,10 @@ export async function voteOnPost(topicId: string, postId: string, userId: string
 
   if (postSnap.exists()) {
     const post = postSnap.data() as Post;
-    const upvoted = post.upvotedBy.includes(userId);
-    const downvoted = post.downvotedBy.includes(userId);
+    const upvotedBy = post.upvotedBy ?? [];
+    const downvotedBy = post.downvotedBy ?? [];
+    const upvoted = upvotedBy.includes(userId);
+    const downvoted = downvotedBy.includes(userId);
 
     let updates: any = {};
 
@@ -227,38 +313,37 @@ export async function voteOnReply(topicId: string, postId: string, replyId: stri
     const replyIndex = post.replies?.findIndex(r => r.id === replyId);
 
     if (post.replies && replyIndex !== undefined && replyIndex !== -1) {
-      const reply = post.replies[replyIndex];
+      const reply = { ...post.replies[replyIndex] };
+      reply.upvotes = reply.upvotes ?? 0;
+      reply.downvotes = reply.downvotes ?? 0;
+      reply.upvotedBy = [...(reply.upvotedBy ?? [])];
+      reply.downvotedBy = [...(reply.downvotedBy ?? [])];
+
       const upvoted = reply.upvotedBy.includes(userId);
       const downvoted = reply.downvotedBy.includes(userId);
 
       if (voteType === 'upvote') {
         if (upvoted) {
-          // User is removing their upvote
           reply.upvotes -= 1;
-          reply.upvotedBy = reply.upvotedBy.filter(id => id !== userId);
+          reply.upvotedBy = reply.upvotedBy.filter((id) => id !== userId);
         } else {
-          // User is adding an upvote
           reply.upvotes += 1;
           reply.upvotedBy.push(userId);
           if (downvoted) {
-            // If user had downvoted, remove the downvote
             reply.downvotes -= 1;
-            reply.downvotedBy = reply.downvotedBy.filter(id => id !== userId);
+            reply.downvotedBy = reply.downvotedBy.filter((id) => id !== userId);
           }
         }
       } else if (voteType === 'downvote') {
         if (downvoted) {
-          // User is removing their downvote
           reply.downvotes -= 1;
-          reply.downvotedBy = reply.downvotedBy.filter(id => id !== userId);
+          reply.downvotedBy = reply.downvotedBy.filter((id) => id !== userId);
         } else {
-          // User is adding a downvote
           reply.downvotes += 1;
           reply.downvotedBy.push(userId);
           if (upvoted) {
-            // If user had upvoted, remove the upvote
             reply.upvotes -= 1;
-            reply.upvotedBy = reply.upvotedBy.filter(id => id !== userId);
+            reply.upvotedBy = reply.upvotedBy.filter((id) => id !== userId);
           }
         }
       }
@@ -289,15 +374,26 @@ export async function deleteReply(topicId: string, postId: string, replyId: stri
 export async function getStudyGroups(): Promise<StudyGroup[]> {
     const studyGroupsCol = collection(db, "studygroups");
     const studyGroupSnapshot = await getDocs(studyGroupsCol);
-    const studyGroupList = studyGroupSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudyGroup));
-    return studyGroupList;
+    return studyGroupSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        members: Array.isArray(data.members) ? data.members : [],
+      } as StudyGroup;
+    });
 }
 
 export async function getStudyGroup(id: string): Promise<StudyGroup | null> {
     const studyGroupRef = doc(db, "studygroups", id);
     const studyGroupSnap = await getDoc(studyGroupRef);
     if (studyGroupSnap.exists()) {
-        return { id: studyGroupSnap.id, ...studyGroupSnap.data() } as StudyGroup;
+      const data = studyGroupSnap.data();
+      return {
+        id: studyGroupSnap.id,
+        ...data,
+        members: Array.isArray(data.members) ? data.members : [],
+      } as StudyGroup;
     }
     return null;
 }
@@ -324,6 +420,18 @@ export async function leaveStudyGroup(studyGroupId: string, userId: string) {
     });
 }
 
+/** Deletes the study group document and all documents in the `challenges` subcollection. */
+export async function deleteStudyGroup(studyGroupId: string): Promise<void> {
+  const challengesRef = collection(db, "studygroups", studyGroupId, "challenges");
+  const snap = await getDocs(challengesRef);
+  for (let i = 0; i < snap.docs.length; i += 500) {
+    const batch = writeBatch(db);
+    snap.docs.slice(i, i + 500).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+  await deleteDoc(doc(db, "studygroups", studyGroupId));
+}
+
 export async function getStudyGroupMembers(studyGroupId: string): Promise<Member[]> {
     const studyGroup = await getStudyGroup(studyGroupId);
     if (!studyGroup) return [];
@@ -334,7 +442,11 @@ export async function getStudyGroupMembers(studyGroupId: string): Promise<Member
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
             const user = userSnap.data();
-            members.push({ id: userSnap.id, name: user.displayName, avatar: user.photoURL });
+            members.push({
+              id: userSnap.id,
+              name: user.displayName || user.email || "Student",
+              avatar: user.photoURL || "",
+            });
         }
     }
     return members;
@@ -370,23 +482,61 @@ export async function getRubric(peerReviewId: string): Promise<RubricItem[]> {
     return rubricList;
 }
 
-export async function createPeerReview(peerReview: Omit<PeerReview, 'id'>, rubric: Omit<RubricItem, 'id'>[]) {
-    const peerReviewsCol = collection(db, "peer-reviews");
-    const newPeerReviewRef = await addDoc(peerReviewsCol, peerReview);
-    const rubricCol = collection(db, "peer-reviews", newPeerReviewRef.id, "rubric");
-    for (const item of rubric) {
-        await addDoc(rubricCol, item);
+export async function createPeerReview(
+  peerReview: Omit<PeerReview, "id">,
+  rubric: Omit<RubricItem, "id">[],
+  rubricFiles?: (File | null | undefined)[]
+): Promise<string> {
+  const peerReviewsCol = collection(db, "peer-reviews");
+  const newPeerReviewRef = await addDoc(peerReviewsCol, peerReview);
+  const rubricCol = collection(db, "peer-reviews", newPeerReviewRef.id, "rubric");
+  for (let i = 0; i < rubric.length; i++) {
+    const item = rubric[i];
+    const file = rubricFiles?.[i];
+    const hasFile = file instanceof File && file.size > 0;
+    const trimmed = item.criterion?.trim() ?? "";
+    if (!trimmed && !hasFile) continue;
+    const criterion =
+      trimmed || (hasFile ? (file!.name.replace(/\.[^.]+$/, "") || "Rubric attachment") : "");
+    const maxScore = Number.isFinite(item.maxScore) ? item.maxScore : 0;
+    const rubricDocRef = await addDoc(rubricCol, { criterion, maxScore });
+    if (hasFile) {
+      await attachRubricItemFile(newPeerReviewRef.id, rubricDocRef.id, file!);
     }
+  }
+  return newPeerReviewRef.id;
 }
 
-export async function createReview(peerReviewId: string, review: Omit<Review, 'id'>) {
-    const reviewsCol = collection(db, "peer-reviews", peerReviewId, "reviews");
-    await addDoc(reviewsCol, review);
+export async function createReview(peerReviewId: string, review: Omit<Review, "id" | "createdAt">) {
+  const reviewsCol = collection(db, "peer-reviews", peerReviewId, "reviews");
+  await addDoc(reviewsCol, {
+    ...review,
+    createdAt: serverTimestamp(),
+  });
 }
 
 export async function getReviews(peerReviewId: string): Promise<Review[]> {
-    const reviewsCol = collection(db, "peer-reviews", peerReviewId, "reviews");
-    const reviewSnapshot = await getDocs(reviewsCol);
-    const reviewList = reviewSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-    return reviewList;
+  const reviewsCol = collection(db, "peer-reviews", peerReviewId, "reviews");
+  const reviewSnapshot = await getDocs(reviewsCol);
+  const reviewList = reviewSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Review));
+  return reviewList.sort((a, b) => reviewTimeMs(b) - reviewTimeMs(a));
+}
+
+export function subscribeToPeerReviewComments(
+  peerReviewId: string,
+  callback: (reviews: Review[]) => void
+) {
+  const reviewsCol = collection(db, "peer-reviews", peerReviewId, "reviews");
+  return onSnapshot(
+    reviewsCol,
+    (snapshot) => {
+      const reviewList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Review));
+      reviewList.sort((a, b) => reviewTimeMs(b) - reviewTimeMs(a));
+      callback(reviewList);
+    },
+    (err) => {
+      console.error("subscribeToPeerReviewComments:", err);
+      callback([]);
+    }
+  );
 }

@@ -23,7 +23,11 @@ import {
 } from "@/components/ui/select"
 import { Plus, Calendar as CalendarIcon } from "lucide-react"
 import { createAssignment, ClassData } from "@/lib/teacher"
-import { curriculum } from "@/lib/curriculum"
+import questionsData from "@/app/data/questions.json"
+
+const QUIZ_CATEGORIES = Array.from(
+  new Set((questionsData as { category: string }[]).map((q) => q.category))
+).sort((a, b) => a.localeCompare(b))
 import { toast } from "sonner"
 import { Timestamp } from "firebase/firestore"
 
@@ -89,7 +93,7 @@ export function CreateAssignmentDialog({ teacherId, classes, trigger }: CreateAs
         <DialogHeader>
           <DialogTitle className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">New Assignment</DialogTitle>
           <DialogDescription className="text-[#006B6B] font-bold text-lg">
-            Create a new task for your students.
+            Assign a quiz to everyone in one of your classes.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
@@ -118,15 +122,15 @@ export function CreateAssignmentDialog({ teacherId, classes, trigger }: CreateAs
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-black uppercase text-xs tracking-widest text-[#2C2C2C]/60">Course</Label>
+              <Label className="font-black uppercase text-xs tracking-widest text-[#2C2C2C]/60">Quiz</Label>
               <Select value={courseId} onValueChange={setCourseId} required>
                 <SelectTrigger className="border-2 border-black bg-white font-bold">
-                  <SelectValue placeholder="Select course" />
+                  <SelectValue placeholder="Select quiz" />
                 </SelectTrigger>
-                <SelectContent>
-                  {curriculum.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.name}
+                <SelectContent className="max-h-[min(280px,50vh)]">
+                  {QUIZ_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -4,12 +4,14 @@ type QuizSettings = {
   soundEnabled: boolean;
   hapticsEnabled: boolean;
   zoom: number;
+  fontSize: number;
 };
 
 const DEFAULT_SETTINGS: QuizSettings = {
   soundEnabled: true,
   hapticsEnabled: true,
   zoom: 1,
+  fontSize: 16,
 };
 
 export function useQuizSettings() {
@@ -21,7 +23,7 @@ export function useQuizSettings() {
     try {
       const stored = localStorage.getItem('quiz-settings');
       if (stored) {
-        setSettings(JSON.parse(stored));
+        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
       }
     } catch (e) {
       console.error("Failed to load quiz settings", e);
@@ -44,6 +46,8 @@ export function useQuizSettings() {
   const toggleSound = () => updateSettings({ soundEnabled: !settings.soundEnabled });
   const toggleHaptics = () => updateSettings({ hapticsEnabled: !settings.hapticsEnabled });
   const updateZoom = (level: number) => updateSettings({ zoom: level });
+  const updateFontSize = (px: number) =>
+    updateSettings({ fontSize: Math.min(28, Math.max(12, Math.round(px))) });
 
   return {
     settings,
@@ -51,6 +55,7 @@ export function useQuizSettings() {
     toggleSound,
     toggleHaptics,
     updateZoom,
+    updateFontSize,
     loaded
   };
 }

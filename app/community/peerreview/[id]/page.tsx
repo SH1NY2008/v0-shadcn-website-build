@@ -2,17 +2,27 @@
 'use client'
 
 import { PageLayout } from "@/components/page-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState } from "react";
-import { getPeerReview, getRubric, getReviews, createReview, type PeerReview, type RubricItem, type Review } from "@/lib/community";
+import { use, useEffect, useState } from "react";
+import {
+  getPeerReview,
+  getRubric,
+  createReview,
+  subscribeToPeerReviewComments,
+  type PeerReview,
+  type RubricItem,
+  type Review,
+} from "@/lib/community";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Download, User as UserIcon } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
-export default function PeerReviewSessionPage({ params }: { params: { id: string } }) {
+export default function PeerReviewSessionPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [user, setUser] = useState<User | null>(null);
   const [peerReview, setPeerReview] = useState<PeerReview | null>(null);
   const [rubric, setRubric] = useState<RubricItem[]>([]);
@@ -30,44 +40,78 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
 
   useEffect(() => {
     async function fetchData() {
-      const review = await getPeerReview(params.id);
+      const review = await getPeerReview(id);
       setPeerReview(review);
       if (review) {
-        const rubricItems = await getRubric(params.id);
+        const rubricItems = await getRubric(id);
         setRubric(rubricItems);
-        const reviewItems = await getReviews(params.id);
-        setReviews(reviewItems);
       }
       setLoading(false);
     }
     fetchData();
-  }, [params.id]);
+  }, [id]);
 
-  const handleScoreChange = (rubricItemId: string, score: number) => {
-    setNewReviewScores({ ...newReviewScores, [rubricItemId]: score });
+  useEffect(() => {
+    const unsub = subscribeToPeerReviewComments(id, setReviews);
+    return () => unsub();
+  }, [id]);
+
+  const handleScoreChange = (rubricItemId: string, raw: string) => {
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n)) {
+      const next = { ...newReviewScores };
+      delete next[rubricItemId];
+      setNewReviewScores(next);
+      return;
+    }
+    setNewReviewScores({ ...newReviewScores, [rubricItemId]: n });
   };
 
   const handleCreateReview = async () => {
-    if (!user || !newReviewFeedback) return;
+    if (!user || !newReviewFeedback.trim()) return;
 
-    await createReview(params.id, {
+    await createReview(id, {
       reviewerId: user.uid,
-      feedback: newReviewFeedback,
+      reviewerName: user.displayName || user.email || "Reviewer",
+      feedback: newReviewFeedback.trim(),
       scores: newReviewScores,
     });
 
     setNewReviewFeedback("");
     setNewReviewScores({});
-    const reviewItems = await getReviews(params.id);
-    setReviews(reviewItems);
   };
 
+  function reviewTimestamp(review: Review): string {
+    const c = review.createdAt as { seconds?: number; toDate?: () => Date } | undefined;
+    if (!c) return "";
+    const d =
+      typeof c.toDate === "function"
+        ? c.toDate()
+        : c.seconds != null
+          ? new Date(c.seconds * 1000)
+          : null;
+    if (!d) return "";
+    return formatDistanceToNow(d, { addSuffix: true });
+  }
+
   if (loading) {
-    return <div>Loading...</div>; // Replace with a skeleton loader later
+    return (
+      <PageLayout>
+        <div className="py-20 text-center animate-pulse">
+          <p className="text-[#2C2C2C]/60 font-bold uppercase tracking-widest">Loading peer review…</p>
+        </div>
+      </PageLayout>
+    );
   }
 
   if (!peerReview) {
-    return <div>Peer review not found</div>;
+    return (
+      <PageLayout>
+        <div className="py-20 text-center">
+          <p className="text-2xl font-black text-[#2C2C2C]">{`Peer review not found`}</p>
+        </div>
+      </PageLayout>
+    );
   }
 
   const canReview = user && user.uid !== peerReview.authorId;
@@ -85,9 +129,37 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
         <div className="lg:col-span-2 space-y-8">
             <div>
                 <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Submission</h2>
-                <div className="mt-4 p-6 bg-white rounded-lg border-2 border-black">
+                {peerReview.paperDownloadUrl && (
+                  <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border-2 border-black bg-white p-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <Download className="h-6 w-6 shrink-0 text-[#006B6B]" />
+                      <div className="min-w-0">
+                        <p className="font-black text-[#2C2C2C]">Paper</p>
+                        <p className="truncate text-sm font-bold text-[#2C2C2C]/60">
+                          {peerReview.paperFileName || "Download file"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      className="shrink-0 bg-[#006B6B] font-bold text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)]"
+                      asChild
+                    >
+                      <a href={peerReview.paperDownloadUrl} target="_blank" rel="noopener noreferrer" download>
+                        Download paper
+                      </a>
+                    </Button>
+                  </div>
+                )}
+                {peerReview.submission?.trim() ? (
+                  <div className="mt-4 p-6 bg-white rounded-lg border-2 border-black">
+                    <p className="mb-2 text-xs font-black uppercase tracking-widest text-[#2C2C2C]/50">Notes</p>
                     <p className="text-lg text-black/80 whitespace-pre-wrap">{peerReview.submission}</p>
-                </div>
+                  </div>
+                ) : !peerReview.paperDownloadUrl ? (
+                  <div className="mt-4 rounded-lg border-2 border-dashed border-black/20 bg-white/50 p-6 text-center font-bold text-[#2C2C2C]/60">
+                    No text or file on this submission.
+                  </div>
+                ) : null}
             </div>
 
             {canReview && (
@@ -95,25 +167,44 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
                     <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Write a Review</h2>
                     <div className="mt-4 p-6 bg-[#FFC971] rounded-2xl border-4 border-black">
                         {rubric.map((item) => (
-                        <div key={item.id} className="grid grid-cols-2 items-center gap-4 mb-4">
-                            <p className="font-bold text-lg text-[#2C2C2C]">{item.criterion}</p>
+                        <div key={item.id} className="grid grid-cols-2 items-start gap-4 mb-4">
+                            <div>
+                              <p className="font-bold text-lg text-[#2C2C2C]">{item.criterion}</p>
+                              {item.attachmentDownloadUrl && (
+                                <a
+                                  href={item.attachmentDownloadUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-1 inline-flex items-center gap-1 text-sm font-black uppercase tracking-wide text-[#006B6B] hover:underline"
+                                >
+                                  <Download className="h-4 w-4 shrink-0" />
+                                  {item.attachmentFileName || "Rubric file"}
+                                </a>
+                              )}
+                            </div>
                             <Input
                                 type="number"
                                 max={item.maxScore}
                                 min={0}
                                 placeholder={`Score (0-${item.maxScore})`}
-                                onChange={(e) => handleScoreChange(item.id, parseInt(e.target.value))}
+                                onChange={(e) => handleScoreChange(item.id, e.target.value)}
                                 className="bg-white border-2 border-black text-black font-bold focus:ring-0"
                             />
                         </div>
                         ))}
                         <Textarea
-                            placeholder="Provide feedback..."
-                            className="mt-4 bg-white border-2 border-black text-black font-bold focus:ring-0"
+                            placeholder="Comments and feedback for the author…"
+                            className="mt-4 min-h-[140px] bg-white border-2 border-black text-black font-bold focus:ring-0"
                             value={newReviewFeedback}
                             onChange={(e) => setNewReviewFeedback(e.target.value)}
                         />
-                        <Button className="mt-4 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" onClick={handleCreateReview}>Submit Review</Button>
+                        <Button
+                          className="mt-4 w-full bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl hover:bg-[#005555] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                          onClick={handleCreateReview}
+                          disabled={!newReviewFeedback.trim()}
+                        >
+                          Submit review
+                        </Button>
                     </div>
                 </div>
             )}
@@ -121,8 +212,20 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
             <div>
                 <h2 className="text-4xl font-black text-[#2C2C2C] uppercase tracking-tight">Reviews</h2>
                 <div className="mt-4 space-y-6">
-                    {reviews.map((review) => (
+                    {reviews.length === 0 && (
+                      <p className="rounded-lg border-2 border-dashed border-black/15 bg-white/60 p-6 text-center font-bold text-[#2C2C2C]/60">
+                        No reviews yet. Share this page with a classmate so they can download your paper and leave feedback.
+                      </p>
+                    )}
+                    {reviews.map((review) => {
+                      const ts = reviewTimestamp(review);
+                      return (
                         <div key={review.id} className="p-6 bg-white rounded-lg border-2 border-black">
+                            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold text-[#2C2C2C]/70">
+                              <UserIcon className="h-4 w-4 text-[#006B6B]" />
+                              <span>{review.reviewerName || "Reviewer"}</span>
+                              {ts ? <span className="text-[#2C2C2C]/50">· {ts}</span> : null}
+                            </div>
                             <p className="text-lg text-black/80 whitespace-pre-wrap">{review.feedback}</p>
                             <Separator className="my-4 bg-black/10" />
                             <div className="space-y-2">
@@ -131,7 +234,8 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
                                 ))}
                             </div>
                         </div>
-                    ))}
+                      );
+                    })}
                 </div>
             </div>
         </div>
@@ -144,6 +248,17 @@ export default function PeerReviewSessionPage({ params }: { params: { id: string
                         <div key={item.id}>
                         <p className="text-xl font-black text-[#2C2C2C]">{item.criterion}</p>
                         <p className="text-lg font-bold text-[#2C2C2C]/60">Max score: {item.maxScore}</p>
+                        {item.attachmentDownloadUrl && (
+                          <Button
+                            className="mt-2 w-full bg-white font-bold text-[#006B6B] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.12)]"
+                            variant="outline"
+                            asChild
+                          >
+                            <a href={item.attachmentDownloadUrl} target="_blank" rel="noopener noreferrer" download>
+                              Download rubric file
+                            </a>
+                          </Button>
+                        )}
                         </div>
                     ))}
                 </div>

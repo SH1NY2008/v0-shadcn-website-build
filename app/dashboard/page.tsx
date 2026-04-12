@@ -10,7 +10,7 @@ import { Calendar, Clock, TrendingUp, Award, BookOpen, Target, FunctionSquare, T
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
-import { collection, getDocs, query, where, onSnapshot, doc, getDoc } from "firebase/firestore"
+import { collection, getDocs, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
 import questionsData from "../data/questions.json"
@@ -18,7 +18,13 @@ import Link from "next/link"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useTeacherMode } from "@/context/teacher-mode-context"
 import { Users, FileText, Settings, Plus, LayoutDashboard } from "lucide-react"
-import { subscribeToTeacherStats, ClassData, createClass, getStudentsForClass } from "@/lib/teacher"
+import {
+  subscribeToTeacherStats,
+  ClassData,
+  createClass,
+  getStudentsForClass,
+  type TeacherStatsPayload,
+} from "@/lib/teacher"
 import { joinClassWithCode, subscribeToStudentClasses } from "@/lib/student"
 import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
 import { 
@@ -56,17 +62,14 @@ export default function DashboardPage() {
   const [weeklyCompleted, setWeeklyCompleted] = useState<number>(0)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
   
-  // Teacher specific state
-  const [teacherData, setTeacherData] = useState<{
-    totalStudents: number;
-    avgPerformance: number;
-    classCount: number;
-    classes: ClassData[];
-  }>({
+  // Teacher specific state (live: classes, assignments, quiz submissions for roster students)
+  const [teacherData, setTeacherData] = useState<TeacherStatsPayload>({
     totalStudents: 0,
     avgPerformance: 0,
     classCount: 0,
-    classes: []
+    classes: [],
+    activeAssignmentCount: 0,
+    studentSubmissionCount: 0,
   })
 
   useEffect(() => {
@@ -129,29 +132,40 @@ export default function DashboardPage() {
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !newClassName || !newClassPeriod) return
-    
+    if (!user || !newClassName.trim() || !newClassPeriod.trim()) return
+
     setIsCreating(true)
     try {
-      const newClassId = await createClass(user.uid, {
-        name: newClassName,
-        period: newClassPeriod,
+      const { id, classCode } = await createClass(user.uid, {
+        name: newClassName.trim(),
+        period: newClassPeriod.trim(),
         studentCount: 0,
         avgProgress: 0,
-        teacherId: user.uid
       })
-      const newClassRef = doc(db, "classes", newClassId)
-      const newClassSnap = await getDoc(newClassRef)
-      if (newClassSnap.exists()) {
-        setNewlyCreatedClass(newClassSnap.data() as ClassData)
-      }
+      setNewlyCreatedClass({
+        id,
+        name: newClassName.trim(),
+        period: newClassPeriod.trim(),
+        teacherId: user.uid,
+        studentCount: 0,
+        avgProgress: 0,
+        classCode,
+        students: [],
+      })
       setIsCreateClassOpen(false)
       setNewClassName("")
       setNewClassPeriod("")
       toast.success("Class created successfully!")
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating class:", error)
-      toast.error("Failed to create class")
+      const err = error as { code?: string; message?: string }
+      if (err.code === "permission-denied") {
+        toast.error(
+          "Permission denied: update Firestore security rules so signed-in users can create documents in the classes collection where teacherId matches their account."
+        )
+      } else {
+        toast.error(err.message || "Failed to create class")
+      }
     } finally {
       setIsCreating(false)
     }
@@ -159,14 +173,14 @@ export default function DashboardPage() {
 
   const teacherStats = [
     { title: "Total Students", icon: Users, value: teacherData.totalStudents.toString(), sub: `Across ${teacherData.classCount} classes` },
-    { title: "Avg. Performance", icon: TrendingUp, value: `${teacherData.avgPerformance}%`, sub: "Real-time class average" },
-    { title: "Pending Reviews", icon: FileText, value: "0", sub: "Fetch from submissions" },
-    { title: "Course Materials", icon: BookOpen, value: "0", sub: "Published resources" }
+    { title: "Avg. Performance", icon: TrendingUp, value: `${teacherData.avgPerformance}%`, sub: "Enrolled students' curriculum progress" },
+    { title: "Class Submissions", icon: FileText, value: teacherData.studentSubmissionCount.toString(), sub: "Quiz attempts from your students" },
+    { title: "Active Assignments", icon: BookOpen, value: teacherData.activeAssignmentCount.toString(), sub: "Assignments you published" },
   ]
 
   useEffect(() => {
     const run = async () => {
-      if (!user) return
+      if (!user || isTeacherMode) return
       const courseIds = curriculum.map((c) => c.id)
       let active = 0
       let totalTopics = 0
@@ -199,14 +213,14 @@ export default function DashboardPage() {
       setWeeklyCompleted(completedThisWeek)
     }
     run()
-  }, [user])
+  }, [user, isTeacherMode])
 
   const weeklyLessonsPercent = Math.min(100, Math.round((weeklyCompleted / 5) * 100))
   const weeklyStudyHours = Number((weeklyCompleted * 0.25).toFixed(1))
   const weeklyHoursPercent = Math.min(100, Math.round((weeklyStudyHours / 10) * 100))
 
   useEffect(() => {
-    if (!user) return
+    if (!user || isTeacherMode) return
     const ids = ["algebra-2", "precalculus", "calculus-1"]
     const unsubs: Array<() => void> = []
     for (const courseId of ids) {
@@ -225,7 +239,7 @@ export default function DashboardPage() {
     return () => {
       for (const u of unsubs) u()
     }
-  }, [user])
+  }, [user, isTeacherMode])
 
   // Group questions by category
   const quizCategories = questionsData.reduce((acc: any, q: any) => {
@@ -320,12 +334,18 @@ export default function DashboardPage() {
                 studentClasses.length > 0 ? (
                   studentClasses.map((cls, i) => (
                     <ScrollReveal key={cls.id} delay={i * 0.1} yOffset={40} scaleOffset={0.04}>
-                      <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md">
+                      <Link
+                        href={`/dashboard/class/${cls.id}`}
+                        className="block h-full rounded-2xl border-2 border-black/5 bg-white/40 p-5 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md"
+                      >
                         <div>
                           <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">{cls.name}</h4>
                           <p className="text-sm font-bold text-[#006B6B] mt-1">{cls.period}</p>
+                          <p className="text-xs font-black uppercase tracking-wide text-[#006B6B]/80 mt-3">
+                            View assigned quizzes →
+                          </p>
                         </div>
-                      </div>
+                      </Link>
                     </ScrollReveal>
                   ))
                 ) : (
@@ -503,8 +523,8 @@ export default function DashboardPage() {
             </div>
             
             <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
-              <Link href={isTeacherMode ? "#" : "/quizzes"}>
-                {isTeacherMode ? "View All Tools" : "View All Quizzes"}
+              <Link href="/quizzes">
+                {isTeacherMode ? "View All Assignments" : "View All Quizzes"}
               </Link>
             </Button>
           </div>
@@ -554,7 +574,7 @@ export default function DashboardPage() {
                 <ul className="space-y-3">
                   {classRoster.map((student) => (
                     <li key={student.uid} className="flex items-center justify-between bg-white/30 p-3 rounded-lg">
-                      <span className="font-bold text-[#2C2C2C]">{student.displayName}</span>
+                      <span className="font-bold text-[#2C2C2C]">{student.displayName || "Student"}</span>
                       <span className="text-sm text-[#006B6B]">{student.email}</span>
                     </li>
                   ))}

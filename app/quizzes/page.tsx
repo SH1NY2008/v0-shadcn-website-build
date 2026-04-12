@@ -11,13 +11,15 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useQuizSettings } from "@/hooks/use-quiz-settings"
 import { useTeacherMode } from "@/context/teacher-mode-context"
-import { Plus, BarChart3, Edit3 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Plus, BarChart3 } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
-import { getTeacherClasses, ClassData, Assignment } from "@/lib/teacher"
-import { CreateAssignmentDialog } from "@/components/create-assignment-dialog";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore"
+import { getTeacherClasses, ClassData, Assignment, deleteAssignment } from "@/lib/teacher"
+import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
+import { subscribeToStudentClasses } from "@/lib/student"
+import { toast } from "sonner"
+import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
 
@@ -48,6 +50,12 @@ export default function QuizzesPage() {
   const [user, setUser] = useState<User | null>(null)
   const [classes, setClasses] = useState<ClassData[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [studentClassIds, setStudentClassIds] = useState<Set<string>>(new Set())
+
+  const visibleAssignments = useMemo(() => {
+    if (isTeacherMode) return assignments
+    return assignments.filter((a) => studentClassIds.has(a.classId))
+  }, [assignments, isTeacherMode, studentClassIds])
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u))
@@ -68,17 +76,38 @@ export default function QuizzesPage() {
       })
       return () => unsub()
     } else if (user) {
-      // In a real app, you'd fetch assignments for the classes the student is enrolled in
-      // For now, we'll fetch all active assignments
       const q = query(collection(db, "assignments"), where("status", "==", "active"))
-      const unsub = onSnapshot(q, (snap) => {
-        setAssignments(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Assignment)))
-      }, (error) => {
-        console.error("Error listening to active assignments:", error)
-      })
+      const unsub = onSnapshot(
+        q,
+        (snap) => {
+          setAssignments(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Assignment)))
+        },
+        (error) => {
+          console.error("Error listening to active assignments:", error)
+        }
+      )
       return () => unsub()
     }
   }, [isTeacherMode, user])
+
+  useEffect(() => {
+    if (isTeacherMode || !user) {
+      setStudentClassIds(new Set())
+      return
+    }
+    const unsub = subscribeToStudentClasses(user.uid, (list) => {
+      setStudentClassIds(new Set(list.map((c) => c.id)))
+    })
+    return () => unsub()
+  }, [isTeacherMode, user])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (window.location.hash !== "#quiz-categories") return
+    requestAnimationFrame(() => {
+      document.getElementById("quiz-categories")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }, [])
 
   return (
     <PageLayout style={{ fontSize: `${settings.fontSize}px` }}>
@@ -89,20 +118,36 @@ export default function QuizzesPage() {
               {isTeacherMode ? "Assignments" : "Quizzes"}
             </h1>
             <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
-              {isTeacherMode 
-                ? "Create and manage assessments for your students." 
-                : "Master mathematics concepts from Algebra to Calculus."}
+              {isTeacherMode
+                ? "Assign quizzes to a class; students open them from their class on the dashboard."
+                : "Practice by category, or open assigned quizzes from each class on your dashboard."}
             </p>
           </div>
           
           {isTeacherMode && (
-            <div className="flex gap-4">
-              <CreateAssignmentDialog 
-                teacherId={user?.uid || ""} 
+            <div className="flex flex-col items-stretch sm:items-end gap-3 w-full md:w-auto">
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-2 border-black font-bold bg-white/80 hover:bg-white"
+                >
+                  <a href="#quiz-categories">Quiz library</a>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-2 border-black font-bold bg-white/80 hover:bg-white"
+                >
+                  <Link href="/quizzes/results">Class results</Link>
+                </Button>
+              </div>
+              <CreateAssignmentDialog
+                teacherId={user?.uid || ""}
                 classes={classes}
                 trigger={
-                  <Button className="bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] shadow-md uppercase tracking-wide gap-2">
-                    <Plus className="h-6 w-6" /> Create New
+                  <Button className="bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] shadow-md uppercase tracking-wide gap-2 w-full sm:w-auto">
+                    <Plus className="h-6 w-6" /> Create assignment
                   </Button>
                 }
               />
@@ -169,8 +214,8 @@ export default function QuizzesPage() {
         </div>
       </div>
 
-      {assignments.length > 0 && (
-        <div className="mb-12">
+      {visibleAssignments.length > 0 && (
+        <div className="mb-12" id="teacher-assignments">
     
 
       <div className="mb-6 flex items-center gap-4">
@@ -178,11 +223,11 @@ export default function QuizzesPage() {
               <Clock className="h-6 w-6" />
             </div>
             <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
-              {isTeacherMode ? "Manage Assignments" : "Active Assignments"}
+              {isTeacherMode ? "Your assignments" : "From your classes"}
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assignments.map((assignment) => (
+            {visibleAssignments.map((assignment) => (
               <div 
                 key={assignment.id} 
                 className="group flex flex-col justify-between rounded-xl border-4 border-black/10 bg-[#FFC971]/20 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)]"
@@ -200,19 +245,32 @@ export default function QuizzesPage() {
                     {assignment.title}
                   </h3>
                   <p className="text-sm font-bold text-[#2C2C2C]/60 leading-tight">
-                    {assignment.description || `Complete the quiz for ${assignment.courseId}`}
+                    {isTeacherMode && (
+                      <span className="block text-[#006B6B] mb-1">
+                        Class: {classes.find((c) => c.id === assignment.classId)?.name ?? assignment.classId}
+                      </span>
+                    )}
+                    {assignment.description?.trim() || `Quiz category: ${assignment.courseId}`}
                   </p>
                 </div>
                 <div className="mt-8">
                   {isTeacherMode ? (
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                        Edit
-                      </Button>
-                      <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-red-500 hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                        Delete
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-4 border-black/10 font-bold hover:bg-red-500 hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all"
+                      onClick={async () => {
+                        if (!confirm("Remove this assignment? Students will no longer see it.")) return
+                        try {
+                          await deleteAssignment(assignment.id)
+                          toast.success("Assignment removed")
+                        } catch (e) {
+                          console.error(e)
+                          toast.error("Could not delete assignment")
+                        }
+                      }}
+                    >
+                      Remove assignment
+                    </Button>
                   ) : (
                     <Link href={`/quizzes/${encodeURIComponent(assignment.courseId)}`} className="w-full block">
                       <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
@@ -228,13 +286,22 @@ export default function QuizzesPage() {
         </div>
       )}
 
-      <div className="mb-6 flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
-          <BookOpen className="h-6 w-6" />
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between gap-4" id="quiz-categories">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C]">
+            <BookOpen className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
+              Quiz library
+            </h2>
+            {isTeacherMode && (
+              <p className="text-sm font-bold text-[#2C2C2C]/60 mt-1 max-w-xl">
+                Open any category to preview the same quiz experience your students get.
+              </p>
+            )}
+          </div>
         </div>
-        <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">
-          Quiz Categories
-        </h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -259,23 +326,20 @@ export default function QuizzesPage() {
                 Practice problems focusing on {category.toLowerCase()} concepts and applications.
               </p>
             </div>
-            <div className="mt-8">
-              {isTeacherMode ? (
-                <div className="flex gap-2">
-                  <Link href="/quizzes/results" className="flex-1">
-                    <Button variant="outline" className="w-full border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                      <BarChart3 className="h-5 w-5" /> Results
-                    </Button>
-                  </Link>
-                  <Button variant="outline" className="flex-1 border-4 border-black/10 font-bold hover:bg-[#006B6B] hover:text-white gap-2 h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                    <Edit3 className="h-5 w-5" /> Edit
-                  </Button>
-                </div>
-              ) : (
-                <Link href={`/quizzes/${encodeURIComponent(category)}`} className="w-full block">
-                  <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
-                    Start Quiz
-                    <ArrowRight className="h-5 w-5" />
+            <div className="mt-8 flex flex-col gap-2">
+              <Link href={`/quizzes/${encodeURIComponent(category)}`} className="w-full block">
+                <Button className="w-full gap-2 border-4 border-black/10 bg-[#006B6B] hover:bg-[#005555] text-white font-bold text-lg h-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:translate-y-[2px] transition-all">
+                  {isTeacherMode ? "Preview quiz" : "Start Quiz"}
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+              {isTeacherMode && (
+                <Link href="/quizzes/results" className="w-full block">
+                  <Button
+                    variant="outline"
+                    className="w-full border-2 border-black/15 font-bold text-[#2C2C2C] gap-2 h-10 text-sm"
+                  >
+                    <BarChart3 className="h-4 w-4" /> Roster scores
                   </Button>
                 </Link>
               )}

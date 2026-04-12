@@ -1,14 +1,14 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Menu, LayoutDashboard, Calendar, BookOpen, GraduationCap, LogOut, Users } from "lucide-react"
+import { Menu, LayoutDashboard, Calendar, BookOpen, GraduationCap, LogOut, Users, Library } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { auth } from "@/lib/firebase"
 import { signOut } from "firebase/auth"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTeacherMode } from "@/context/teacher-mode-context"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -17,15 +17,44 @@ export function DashboardHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [routeHash, setRouteHash] = useState("")
   const { isTeacherMode, setIsTeacherMode, userRole } = useTeacherMode()
 
-  const links = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/schedule", label: isTeacherMode ? "Office Hours" : "Schedule", icon: Calendar },
-    { href: "/resources", label: "Resources", icon: BookOpen },
-    { href: "/quizzes", label: isTeacherMode ? "Assignments" : "Quizzes", icon: GraduationCap },
-    { href: "/community", label: "Community", icon: Users },
-  ]
+  useEffect(() => {
+    const read = () => setRouteHash(typeof window !== "undefined" ? window.location.hash : "")
+    read()
+    window.addEventListener("hashchange", read)
+    return () => window.removeEventListener("hashchange", read)
+  }, [pathname])
+
+  const linkIsActive = (href: string) => {
+    const pathOnly = href.split("#")[0]
+    if (pathname !== pathOnly) return false
+    const h = href.includes("#") ? "#" + href.split("#")[1] : ""
+    if (pathOnly === "/quizzes" && userRole === "teacher" && isTeacherMode) {
+      if (h === "#quiz-categories") return routeHash === "#quiz-categories"
+      if (href === "/quizzes") return routeHash !== "#quiz-categories"
+    }
+    return true
+  }
+
+  const links =
+    isTeacherMode && userRole === "teacher"
+      ? [
+          { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { href: "/schedule", label: "Office Hours", icon: Calendar },
+          { href: "/resources", label: "Resources", icon: BookOpen },
+          { href: "/quizzes", label: "Assignments", icon: GraduationCap },
+          { href: "/quizzes#quiz-categories", label: "Quiz library", icon: Library },
+          { href: "/community", label: "Community", icon: Users },
+        ]
+      : [
+          { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { href: "/schedule", label: "Schedule", icon: Calendar },
+          { href: "/resources", label: "Resources", icon: BookOpen },
+          { href: "/quizzes", label: "Quizzes", icon: GraduationCap },
+          { href: "/community", label: "Community", icon: Users },
+        ]
 
   const handleSignOut = async () => {
     try {
@@ -68,7 +97,7 @@ export function DashboardHeader() {
                     </div>
                   )}
                   {links.map((link) => {
-                    const isActive = pathname === link.href
+                    const isActive = linkIsActive(link.href)
                     return (
                       <Link
                         key={link.href}
@@ -120,7 +149,7 @@ export function DashboardHeader() {
             </div>
           )}
           {links.map((link) => {
-            const isActive = pathname === link.href
+            const isActive = linkIsActive(link.href)
             return (
               <Link
                 key={link.href}
