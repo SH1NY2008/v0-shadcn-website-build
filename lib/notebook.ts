@@ -6,7 +6,6 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy,
   doc,
   updateDoc,
   deleteDoc,
@@ -26,16 +25,24 @@ export function onNotesUpdate(
   callback: (notes: Note[]) => void
 ) {
   const notesCollection = collection(db, 'notes')
-  const q = query(
-    notesCollection,
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  )
+  // Only equality on userId — avoids composite index (userId + orderBy createdAt).
+  // Sort newest first in memory.
+  const q = query(notesCollection, where('userId', '==', userId))
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const notes = snapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() } as Note)
-    )
+    const notes = snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() } as Note))
+      .sort((a, b) => {
+        const ta =
+          typeof (a.createdAt as { toMillis?: () => number })?.toMillis === "function"
+            ? (a.createdAt as { toMillis: () => number }).toMillis()
+            : 0
+        const tb =
+          typeof (b.createdAt as { toMillis?: () => number })?.toMillis === "function"
+            ? (b.createdAt as { toMillis: () => number }).toMillis()
+            : 0
+        return tb - ta
+      })
     callback(notes)
   })
 

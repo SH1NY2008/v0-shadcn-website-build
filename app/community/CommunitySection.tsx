@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Users, MessageSquare, Briefcase, ArrowRight } from "lucide-react";
+import { Users, MessageSquare, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCommunityHubCounts } from "@/lib/community";
 
@@ -22,17 +22,10 @@ const communityLinks = [
     icon: <Users className="h-6 w-6" />,
     countKey: "studyGroups" as const,
   },
-  {
-    title: "Peer Review",
-    description: "Grade each other's work and provide feedback.",
-    href: "/community/peerreview",
-    icon: <Briefcase className="h-6 w-6" />,
-    countKey: "peerReviews" as const,
-  },
 ];
 
 export function CommunitySection() {
-  const [counts, setCounts] = useState<{ topics: number; studyGroups: number; peerReviews: number } | null>(null);
+  const [counts, setCounts] = useState<{ topics: number; studyGroups: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +35,7 @@ export function CommunitySection() {
       })
       .catch((e) => {
         console.error("getCommunityHubCounts:", e);
-        if (!cancelled) setCounts({ topics: 0, studyGroups: 0, peerReviews: 0 });
+        if (!cancelled) setCounts({ topics: 0, studyGroups: 0 });
       });
     return () => {
       cancelled = true;
@@ -50,7 +43,7 @@ export function CommunitySection() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
       {communityLinks.map((link) => (
         <div
           key={link.title}

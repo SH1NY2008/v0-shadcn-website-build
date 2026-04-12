@@ -1,48 +1,38 @@
 'use client'
 
-import questionsData from '../data/questions.json'
-import Link from 'next/link'
+import Link from "next/link"
 import { PageLayout } from "@/components/page-layout"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Calculator, BookOpen, Sigma, FunctionSquare, Pi, Triangle, Binary, Activity, Volume2, VolumeX, Smartphone, Settings2 } from "lucide-react"
+import {
+  ArrowRight,
+  BookOpen,
+  Volume2,
+  VolumeX,
+  Smartphone,
+  Settings2,
+  BarChart3,
+  Calendar,
+  Clock,
+} from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useQuizSettings } from "@/hooks/use-quiz-settings"
 import { useTeacherMode } from "@/context/teacher-mode-context"
-import { Plus, BarChart3 } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { getTeacherClasses, ClassData, Assignment, deleteAssignment } from "@/lib/teacher"
-import { CreateAssignmentDialog } from "@/components/create-assignment-dialog"
+import { AssignQuizDialog } from "@/components/assign-quiz-dialog"
 import { subscribeToStudentClasses } from "@/lib/student"
 import { toast } from "sonner"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { Calendar as CalendarIcon, Clock } from "lucide-react"
+import { getQuestionsGroupedByCategory } from "@/lib/quiz-categories"
+import { QuizCategoryIcon } from "@/components/quiz-category-icon"
 
-// Group by category
-const categories = questionsData.reduce((acc: any, q: any) => {
-  if (!acc[q.category]) {
-    acc[q.category] = []
-  }
-  acc[q.category].push(q)
-  return acc
-}, {})
-
-// Map categories to icons (fallback to Calculator)
-const getCategoryIcon = (category: string) => {
-  const lower = category.toLowerCase()
-  if (lower.includes('algebra')) return <FunctionSquare className="h-6 w-6" />
-  if (lower.includes('geometry')) return <Triangle className="h-6 w-6" />
-  if (lower.includes('precalculus')) return <Activity className="h-6 w-6" />
-  if (lower.includes('calculus')) return <Sigma className="h-6 w-6" />
-  if (lower.includes('limit')) return <Pi className="h-6 w-6" />
-  
-  return <BookOpen className="h-6 w-6" />
-}
+const categories = getQuestionsGroupedByCategory()
 
 export default function QuizzesPage() {
   const { settings, toggleSound, toggleHaptics, loaded } = useQuizSettings()
@@ -115,44 +105,14 @@ export default function QuizzesPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
           <div>
             <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-[#2C2C2C] uppercase leading-[0.85] mb-6">
-              {isTeacherMode ? "Assignments" : "Quizzes"}
+              Quizzes
             </h1>
             <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
               {isTeacherMode
-                ? "Assign quizzes to a class; students open them from their class on the dashboard."
+                ? "Assign quizzes to class or preview them for yourself"
                 : "Practice by category, or open assigned quizzes from each class on your dashboard."}
             </p>
           </div>
-          
-          {isTeacherMode && (
-            <div className="flex flex-col items-stretch sm:items-end gap-3 w-full md:w-auto">
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-2 border-black font-bold bg-white/80 hover:bg-white"
-                >
-                  <a href="#quiz-categories">Quiz library</a>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-2 border-black font-bold bg-white/80 hover:bg-white"
-                >
-                  <Link href="/quizzes/results">Class results</Link>
-                </Button>
-              </div>
-              <CreateAssignmentDialog
-                teacherId={user?.uid || ""}
-                classes={classes}
-                trigger={
-                  <Button className="bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] shadow-md uppercase tracking-wide gap-2 w-full sm:w-auto">
-                    <Plus className="h-6 w-6" /> Create assignment
-                  </Button>
-                }
-              />
-            </div>
-          )}
           
           {/* Accessibility Settings Card */}
           {!isTeacherMode && loaded && (
@@ -220,7 +180,7 @@ export default function QuizzesPage() {
                 <div>
                   <div className="mb-6 flex items-start justify-between">
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl border-4 border-black/10 bg-white text-[#006B6B] shadow-sm">
-                      <CalendarIcon className="h-6 w-6" />
+                      <Calendar className="h-6 w-6" />
                     </div>
                     <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
                       DUE {assignment.dueDate.toDate().toLocaleDateString()}
@@ -298,7 +258,7 @@ export default function QuizzesPage() {
             <div>
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl border-4 border-black/10 bg-[#FFC971] text-[#2C2C2C] transition-transform group-hover:scale-110 group-hover:rotate-3">
-                  {getCategoryIcon(category)}
+                  <QuizCategoryIcon category={category} />
                 </div>
                 <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
                   {categories[category].length} Qs
@@ -318,6 +278,9 @@ export default function QuizzesPage() {
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
+              {isTeacherMode && user && (
+                <AssignQuizDialog teacherId={user.uid} classes={classes} category={category} />
+              )}
               {isTeacherMode && (
                 <Link
                   href={`/quizzes/results?category=${encodeURIComponent(category)}`}

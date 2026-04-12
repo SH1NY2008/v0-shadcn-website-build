@@ -7,7 +7,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { auth } from "@/lib/firebase"
-import { signOut } from "firebase/auth"
+import { onAuthStateChanged, signOut, type User } from "firebase/auth"
 import { useState, useEffect } from "react"
 import { useTeacherMode } from "@/context/teacher-mode-context"
 import { Switch } from "@/components/ui/switch"
@@ -18,7 +18,13 @@ export function DashboardHeader() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [routeHash, setRouteHash] = useState("")
+  const [user, setUser] = useState<User | null>(null)
   const { isTeacherMode, setIsTeacherMode, userRole } = useTeacherMode()
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, setUser)
+    return () => unsub()
+  }, [])
 
   useEffect(() => {
     const read = () => setRouteHash(typeof window !== "undefined" ? window.location.hash : "")
@@ -33,7 +39,7 @@ export function DashboardHeader() {
     const h = href.includes("#") ? "#" + href.split("#")[1] : ""
     if (pathOnly === "/quizzes" && userRole === "teacher" && isTeacherMode) {
       if (h === "#quiz-categories") return routeHash === "#quiz-categories"
-      if (href === "/quizzes") return routeHash !== "#quiz-categories"
+      return false
     }
     return true
   }
@@ -44,7 +50,6 @@ export function DashboardHeader() {
           { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { href: "/schedule", label: "Office Hours", icon: Calendar },
           { href: "/resources", label: "Resources", icon: BookOpen },
-          { href: "/quizzes", label: "Assignments", icon: GraduationCap },
           { href: "/quizzes#quiz-categories", label: "Quiz library", icon: Library },
           { href: "/community", label: "Community", icon: Users },
         ]
@@ -117,17 +122,29 @@ export function DashboardHeader() {
                   })}
                 </nav>
                 <div className="border-t-4 border-black/10 p-6">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-4 rounded-xl px-4 py-4 text-lg font-bold text-[#2C2C2C]/70 hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
-                    onClick={() => {
-                      setOpen(false)
-                      handleSignOut()
-                    }}
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Sign Out
-                  </Button>
+                  {user ? (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-4 rounded-xl px-4 py-4 text-lg font-bold text-[#2C2C2C]/70 hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
+                      onClick={() => {
+                        setOpen(false)
+                        handleSignOut()
+                      }}
+                    >
+                      <LogOut className="h-5 w-5" />
+                      Sign Out
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-4 rounded-xl px-4 py-4 text-lg font-bold text-[#2C2C2C]/70 hover:bg-[#006B6B]/10 hover:text-[#006B6B]"
+                      asChild
+                    >
+                      <Link href="/login" onClick={() => setOpen(false)}>
+                        Sign in
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
             </SheetContent>
@@ -173,14 +190,20 @@ export function DashboardHeader() {
           NUMERIA
         </Link>
         <div className="hidden lg:block">
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-[#2C2C2C] font-bold hover:bg-black/5"
-                onClick={handleSignOut}
+          {user ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[#2C2C2C] font-bold hover:bg-black/5"
+              onClick={handleSignOut}
             >
-                Sign Out
+              Sign Out
             </Button>
+          ) : (
+            <Button variant="ghost" size="sm" className="text-[#2C2C2C] font-bold hover:bg-black/5" asChild>
+              <Link href="/login">Sign in</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

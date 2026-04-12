@@ -2,31 +2,39 @@
 
 import { PageLayout } from "@/components/page-layout"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, TrendingUp, Award, BookOpen, Target, FunctionSquare, Triangle, Activity, Sigma, Pi, ArrowRight } from "lucide-react"
-import { useEffect, useState } from "react"
+import {
+  Calendar,
+  Clock,
+  TrendingUp,
+  Award,
+  BookOpen,
+  ArrowRight,
+  Users,
+  FileText,
+  Settings,
+} from "lucide-react"
+import { useEffect, useState, useMemo } from "react"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { collection, getDocs, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { curriculum } from "@/lib/curriculum"
-import questionsData from "../data/questions.json"
+import { getQuestionsGroupedByCategory } from "@/lib/quiz-categories"
 import Link from "next/link"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useTeacherMode } from "@/context/teacher-mode-context"
-import { Users, FileText, Settings, Plus, LayoutDashboard } from "lucide-react"
+import { QuizCategoryIcon } from "@/components/quiz-category-icon"
 import {
   subscribeToTeacherStats,
   ClassData,
   createClass,
   getStudentsForClass,
   type TeacherStatsPayload,
+  type Assignment,
 } from "@/lib/teacher"
 import { joinClassWithCode, subscribeToStudentClasses } from "@/lib/student"
-import { CreateClassWorkDialog } from "@/components/create-class-work-dialog"
 import { 
   Dialog, 
   DialogContent, 
@@ -39,6 +47,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+
+const quizCategories = getQuestionsGroupedByCategory()
 
 export default function DashboardPage() {
   const { isTeacherMode } = useTeacherMode()
@@ -61,6 +71,7 @@ export default function DashboardPage() {
   const [achievements, setAchievements] = useState<number>(0)
   const [weeklyCompleted, setWeeklyCompleted] = useState<number>(0)
   const [coursePercents, setCoursePercents] = useState<Record<string, number>>({})
+  const [studentQuizAssignments, setStudentQuizAssignments] = useState<Assignment[]>([])
   
   // Teacher specific state (live: classes, assignments, quiz submissions for roster students)
   const [teacherData, setTeacherData] = useState<TeacherStatsPayload>({
@@ -108,6 +119,62 @@ export default function DashboardPage() {
       return () => unsub()
     }
   }, [isTeacherMode, user])
+
+  useEffect(() => {
+    if (isTeacherMode || !user) {
+      setStudentQuizAssignments([])
+      return
+    }
+    const classIds = new Set(studentClasses.map((c) => c.id))
+    if (classIds.size === 0) {
+      setStudentQuizAssignments([])
+      return
+    }
+    const q = query(collection(db, "assignments"), where("status", "==", "active"))
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Assignment))
+          .filter((a) => classIds.has(a.classId))
+        list.sort((a, b) => {
+          const ta =
+            typeof (a.dueDate as { toMillis?: () => number })?.toMillis === "function"
+              ? (a.dueDate as { toMillis: () => number }).toMillis()
+              : 0
+          const tb =
+            typeof (b.dueDate as { toMillis?: () => number })?.toMillis === "function"
+              ? (b.dueDate as { toMillis: () => number }).toMillis()
+              : 0
+          return ta - tb
+        })
+        setStudentQuizAssignments(list)
+      },
+      (err) => console.error("assignments listener (student dashboard):", err)
+    )
+    return () => unsub()
+  }, [isTeacherMode, user, studentClasses])
+
+  useEffect(() => {
+    if (isTeacherMode || !user || studentQuizAssignments.length === 0) return
+    const key = `numeria_seen_assignment_ids_${user.uid}`
+    let seen: Set<string>
+    try {
+      seen = new Set(JSON.parse(localStorage.getItem(key) || "[]") as string[])
+    } catch {
+      seen = new Set()
+    }
+    const unseen = studentQuizAssignments.filter((a) => !seen.has(a.id))
+    if (unseen.length === 0) return
+    toast.info(
+      unseen.length === 1
+        ? `New quiz assigned: "${unseen[0].title}" — you can open it in Assigned quizzes below.`
+        : `You have ${unseen.length} new quiz assignments — open them in Assigned quizzes below.`,
+      { duration: 9000 }
+    )
+    unseen.forEach((a) => seen.add(a.id))
+    localStorage.setItem(key, JSON.stringify([...seen]))
+  }, [isTeacherMode, user, studentQuizAssignments])
 
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -219,6 +286,25 @@ export default function DashboardPage() {
   const weeklyStudyHours = Number((weeklyCompleted * 0.25).toFixed(1))
   const weeklyHoursPercent = Math.min(100, Math.round((weeklyStudyHours / 10) * 100))
 
+  const classNameById = useMemo(() => {
+    const m = new Map<string, string>()
+    studentClasses.forEach((c) => m.set(c.id, c.name))
+    return m
+  }, [studentClasses])
+
+  const formatAssignmentDue = (d: Assignment["dueDate"]) => {
+    if (!d) return "—"
+    try {
+      const date =
+        typeof (d as { toDate?: () => Date }).toDate === "function"
+          ? (d as { toDate: () => Date }).toDate()
+          : new Date((d as { seconds?: number }).seconds! * 1000)
+      return date.toLocaleDateString()
+    } catch {
+      return "—"
+    }
+  }
+
   useEffect(() => {
     if (!user || isTeacherMode) return
     const ids = ["algebra-2", "precalculus", "calculus-1"]
@@ -240,26 +326,6 @@ export default function DashboardPage() {
       for (const u of unsubs) u()
     }
   }, [user, isTeacherMode])
-
-  // Group questions by category
-  const quizCategories = questionsData.reduce((acc: any, q: any) => {
-    if (!acc[q.category]) {
-      acc[q.category] = []
-    }
-    acc[q.category].push(q)
-    return acc
-  }, {})
-
-  const getCategoryIcon = (category: string) => {
-    const lower = category.toLowerCase()
-    if (lower.includes('algebra')) return <FunctionSquare className="h-5 w-5" />
-    if (lower.includes('geometry')) return <Triangle className="h-5 w-5" />
-    if (lower.includes('precalculus')) return <Activity className="h-5 w-5" />
-    if (lower.includes('calculus')) return <Sigma className="h-5 w-5" />
-    if (lower.includes('limit')) return <Pi className="h-5 w-5" />
-    
-    return <BookOpen className="h-5 w-5" />
-  }
 
   return (
     <PageLayout>
@@ -297,6 +363,47 @@ export default function DashboardPage() {
           </ScrollReveal>
         ))}
       </div>
+
+      {!isTeacherMode && studentQuizAssignments.length > 0 && (
+        <div className="mb-12 rounded-3xl border-4 border-black/10 bg-white p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b-4 border-black/10 pb-6">
+            <div>
+              <h2 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">Assigned quizzes</h2>
+              <p className="text-[#006B6B] font-bold text-lg mt-1">
+                From your teachers — tap a card to complete the quiz
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {studentQuizAssignments.map((a) => (
+              <Link
+                key={a.id}
+                href={`/quizzes/${encodeURIComponent(a.courseId)}`}
+                className="group block rounded-2xl border-4 border-black/10 bg-[#FFC971]/40 p-5 transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.12)]"
+              >
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-black/10 bg-white text-[#006B6B]">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <Badge className="bg-[#006B6B] text-white border-none text-xs font-bold shrink-0">
+                    Due {formatAssignmentDue(a.dueDate)}
+                  </Badge>
+                </div>
+                <h3 className="font-black text-lg text-[#2C2C2C] leading-tight line-clamp-2 mb-1">{a.title}</h3>
+                <p className="text-xs font-bold text-[#2C2C2C]/55 mb-3">
+                  {classNameById.get(a.classId) ?? "Class"}
+                </p>
+                <p className="text-sm font-bold text-[#2C2C2C]/70 line-clamp-2 mb-4">
+                  {a.description?.trim() || `Quiz: ${a.courseId}`}
+                </p>
+                <div className="flex items-center text-[#006B6B] font-black text-sm uppercase tracking-wide group-hover:translate-x-1 transition-transform">
+                  Complete quiz <ArrowRight className="ml-2 h-4 w-4" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Class Overview / Current Courses */}
@@ -454,35 +561,11 @@ export default function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               {isTeacherMode ? (
                 <>
-                  <ScrollReveal delay={0.1} yOffset={20} scaleOffset={0.02}>
-                    <CreateClassWorkDialog
-                      teacherId={user?.uid || ""}
-                      classes={teacherData.classes}
-                      trigger={
-                        <div className="h-full cursor-pointer rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
-                          <div>
-                            <div className="p-2 w-fit rounded-xl text-white bg-blue-500 mb-3 shadow-sm">
-                              <Plus className="h-6 w-6" />
-                            </div>
-                            <h4 className="font-bold text-lg text-[#2C2C2C] leading-tight">Create Assignment</h4>
-                            <p className="text-xs font-bold text-[#2C2C2C]/50 mt-2 leading-snug">
-                              Upload homework for a class
-                            </p>
-                          </div>
-                          <div className="flex items-center text-[#2C2C2C]/40 font-black text-xs uppercase tracking-wide mt-4">
-                            Open Tool <ArrowRight className="ml-1 h-3 w-3" />
-                          </div>
-                        </div>
-                      }
-                    />
-                  </ScrollReveal>
-
                   {[
-                    { title: "Review Submissions", icon: FileText, color: "bg-orange-500", href: "/dashboard/review-submissions" },
                     { title: "Curriculum Editor", icon: Settings, color: "bg-purple-500", href: "/dashboard/curriculum-editor" },
                     { title: "Student Roster", icon: Users, color: "bg-green-500", href: "/dashboard/roster" },
                   ].map((tool, i) => (
-                    <ScrollReveal key={tool.title} delay={0.2 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
+                    <ScrollReveal key={tool.title} delay={0.1 + (i * 0.1)} yOffset={20} scaleOffset={0.02}>
                       <Link href={tool.href} className="block h-full">
                         <div className="h-full rounded-2xl border-2 border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between min-h-[140px]">
                           <div>
@@ -507,7 +590,7 @@ export default function DashboardPage() {
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <div className="p-2 bg-[#006B6B]/10 rounded-xl text-[#006B6B] group-hover:bg-[#006B6B] group-hover:text-white transition-colors">
-                              {getCategoryIcon(category)}
+                              <QuizCategoryIcon category={category} className="h-5 w-5" />
                             </div>
                             <Badge className="bg-[#006B6B] text-white hover:bg-[#005555] border-none text-xs px-2 py-1 rounded-lg font-bold">
                               {quizCategories[category].length} Qs
@@ -527,7 +610,7 @@ export default function DashboardPage() {
             
             <Button className="w-full bg-[#006B6B] text-white font-bold text-lg h-14 rounded-xl hover:bg-[#005555] hover:scale-[1.01] active:scale-[0.98] transition-all shadow-md uppercase tracking-wide" asChild>
               <Link href="/quizzes">
-                {isTeacherMode ? "View All Assignments" : "View All Quizzes"}
+                View all quizzes
               </Link>
             </Button>
           </div>

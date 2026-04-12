@@ -44,7 +44,6 @@ export function LandingNav({ heroStarted = true }: LandingNavProps) {
           { href: "/dashboard", label: "Dashboard" },
           { href: "/schedule", label: "Office Hours" },
           { href: "/resources", label: "Resources" },
-          { href: "/quizzes", label: "Assignments" },
           { href: "/quizzes#quiz-categories", label: "Quiz library" },
           { href: "/community", label: "Community" },
         ]
