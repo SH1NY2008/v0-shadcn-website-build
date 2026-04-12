@@ -117,7 +117,7 @@ export function AssignQuizDialog({ teacherId, classes, category }: AssignQuizDia
                 id="assign-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="border-2 border-black bg-white font-bold"
+                className="border-2 border-black bg-white font-bold placeholder:text-black/40"
                 placeholder="Title shown to students"
               />
             </div>
@@ -129,7 +129,7 @@ export function AssignQuizDialog({ teacherId, classes, category }: AssignQuizDia
                 id="assign-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="border-2 border-black bg-white font-bold resize-none min-h-[80px]"
+                className="border-2 border-black bg-white font-bold resize-none min-h-[80px] placeholder:text-black/40"
                 placeholder="Optional note for your class"
               />
             </div>

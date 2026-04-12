@@ -217,11 +217,11 @@ export default function StudyGroupsPage() {
                       required
                       value={newGroupTitle}
                       onChange={(e) => setNewGroupTitle(e.target.value)}
-                      className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right font-bold text-lg text-[#2C2C2C]">
+                      className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0 placeholder:text-black/40"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right font-bold text-lg text-[#2C2C2C]">
                       Description
                     </Label>
                     <Input
@@ -229,10 +229,10 @@ export default function StudyGroupsPage() {
                       required
                       value={newGroupDescription}
                       onChange={(e) => setNewGroupDescription(e.target.value)}
-                      className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0"
-                    />
-                  </div>
+                      className="col-span-3 bg-white border-2 border-black text-black font-bold focus:ring-0 placeholder:text-black/40"
+                  />
                 </div>
+              </div>
                 <DialogFooter>
                   <Button
                     type="submit"
@@ -339,7 +339,7 @@ export default function StudyGroupsPage() {
                     <CardContent className="flex items-center gap-4 p-4">
                       <Avatar className="h-12 w-12 border-2 border-black/10">
                         <AvatarImage src={p.photoURL} alt="" />
-                        <AvatarFallback className="font-black">
+                        <AvatarFallback className="font-black bg-[#006B6B] text-white">
                           {(p.displayName || "?").charAt(0)}
                         </AvatarFallback>
                       </Avatar>

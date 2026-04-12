@@ -312,7 +312,7 @@ export default function StudyGroupPage({ params }: { params: Promise<{ id: strin
                         setDraft(e.target.value.slice(0, MAX_GROUP_MESSAGE_LENGTH))
                       }
                       rows={3}
-                      className="resize-none border-2 border-black font-bold"
+                      className="resize-none border-2 border-black font-bold placeholder:text-white"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();

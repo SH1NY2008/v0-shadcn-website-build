@@ -594,7 +594,7 @@ export default function DashboardPage() {
                         placeholder="e.g. Honors Algebra 2" 
                         value={newClassName}
                         onChange={(e) => setNewClassName(e.target.value)}
-                        className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold"
+                        className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold placeholder:text-black/40"
                         required
                       />
                     </div>
@@ -605,7 +605,7 @@ export default function DashboardPage() {
                         placeholder="e.g. Period 1" 
                         value={newClassPeriod}
                         onChange={(e) => setNewClassPeriod(e.target.value)}
-                        className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold"
+                        className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold placeholder:text-black/40"
                         required
                       />
                     </div>
@@ -639,7 +639,7 @@ export default function DashboardPage() {
                       placeholder="Enter class code"
                       value={joinClassCode}
                       onChange={(e) => setJoinClassCode(e.target.value)}
-                      className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold"
+                      className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] font-bold placeholder:text-black/40"
                     />
                     <Button 
                       type="submit" 

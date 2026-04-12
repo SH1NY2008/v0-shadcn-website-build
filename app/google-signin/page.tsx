@@ -58,7 +58,7 @@ function LoginForm({
                   type="email"
                   placeholder="m@example.com"
                   required
-                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B]"
+                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] placeholder:text-black/40"
                 />
               </Field>
               <Field>
@@ -75,7 +75,7 @@ function LoginForm({
                   id="password" 
                   type="password" 
                   required 
-                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B]"
+                  className="border-2 border-black bg-white focus-visible:ring-0 focus-visible:border-[#006B6B] placeholder:text-black/40"
                 />
               </Field>
               
