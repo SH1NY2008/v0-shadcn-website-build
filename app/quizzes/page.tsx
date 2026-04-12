@@ -319,7 +319,10 @@ export default function QuizzesPage() {
                 </Button>
               </Link>
               {isTeacherMode && (
-                <Link href="/quizzes/results" className="w-full block">
+                <Link
+                  href={`/quizzes/results?category=${encodeURIComponent(category)}`}
+                  className="w-full block"
+                >
                   <Button
                     variant="outline"
                     className="w-full border-2 border-black/15 font-bold text-[#2C2C2C] gap-2 h-10 text-sm"

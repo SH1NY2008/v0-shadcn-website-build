@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, User as UserIcon, BarChart3 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 interface QuizResult {
   id: string
@@ -29,6 +29,17 @@ interface QuizResult {
 
 export default function QuizResultsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const categoryParam = searchParams.get("category")
+  const categoryFilter = useMemo(() => {
+    if (categoryParam == null || categoryParam === "") return null
+    try {
+      return decodeURIComponent(categoryParam)
+    } catch {
+      return categoryParam
+    }
+  }, [categoryParam])
+
   const { userRole, isRoleResolved } = useTeacherMode()
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
@@ -39,8 +50,12 @@ export default function QuizResultsPage() {
 
   const results = useMemo(() => {
     if (rosterStudentIds.size === 0) return []
-    return rawResults.filter((r) => r.userId && rosterStudentIds.has(r.userId))
-  }, [rawResults, rosterStudentIds])
+    return rawResults.filter((r) => {
+      if (!r.userId || !rosterStudentIds.has(r.userId)) return false
+      if (categoryFilter != null && r.category !== categoryFilter) return false
+      return true
+    })
+  }, [rawResults, rosterStudentIds, categoryFilter])
 
   const formatClassLabels = (ids?: string[]) => {
     if (!ids?.length) return "—"
@@ -171,7 +186,17 @@ export default function QuizResultsPage() {
               Quiz <span className="text-[#006B6B]">Results</span>
             </h1>
             <p className="text-xl md:text-2xl font-bold text-[#2C2C2C]/80 max-w-2xl">
-              Monitor student performance across all quiz categories.
+              {categoryFilter ? (
+                <>
+                  Roster scores for <span className="text-[#006B6B]">{categoryFilter}</span> only. Open{" "}
+                  <Link href="/quizzes/results" className="underline underline-offset-2 hover:text-[#006B6B]">
+                    all categories
+                  </Link>{" "}
+                  to see every quiz.
+                </>
+              ) : (
+                "Monitor student performance across all quiz categories."
+              )}
             </p>
           </div>
           <div className="bg-[#FFC971] p-4 rounded-xl border-4 border-black/10 flex items-center gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
