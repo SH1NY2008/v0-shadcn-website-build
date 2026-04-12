@@ -3,6 +3,7 @@
 import { auth, googleProvider, db } from "@/lib/firebase"
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
+import { syncPublicProfileFromAuthUser, writeNewUserDocuments } from "@/lib/user-profile"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -41,15 +42,17 @@ function LoginForm({
       const userSnap = await getDoc(userRef)
       
       if (!userSnap.exists()) {
-        await setDoc(userRef, {
+        await writeNewUserDocuments({
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName,
-          role: "student", // Default for Google login if not existing
-          createdAt: new Date().toISOString()
+          displayName: user.displayName || user.email?.split("@")[0] || "Student",
+          role: "student",
+          photoURL: user.photoURL,
         })
+      } else {
+        await syncPublicProfileFromAuthUser(user)
       }
-      
+
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign in with Google")
@@ -63,7 +66,8 @@ function LoginForm({
     setError(null)
     setLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const cred = await signInWithEmailAndPassword(auth, email, password)
+      await syncPublicProfileFromAuthUser(cred.user)
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign in")

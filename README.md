@@ -28,3 +28,15 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Firebase (Firestore)
+
+Deploy rules and indexes so study group chat and the people directory enforce correctly:
+
+- `firebase.json` points at `firestore.rules` and `firestore.indexes.json`.
+- Run `firebase deploy --only firestore` from this repo (with the Firebase CLI logged into the right project).
+- Until rules are deployed, the **live** project may still deny reads (e.g. community hub counts, study group list for logged-out users). **Community browsing** expects public **read** on `topics` and `studygroups` documents in the deployed rules file.
+
+Group chat messages live under `studygroups/{groupId}/messages` (text-only, max 500 characters in rules). The app does **not** use Firebase Storage for this feature.
+
+**Compliance:** If you serve minors, parental consent and COPPA (or other local rules) are your responsibility; this repo does not implement legal flows for that.

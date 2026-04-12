@@ -3,6 +3,7 @@
 import { auth, googleProvider, db } from "@/lib/firebase"
 import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
+import { syncPublicProfileFromAuthUser, writeNewUserDocuments } from "@/lib/user-profile"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -38,15 +39,21 @@ function SignupForm({
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
       
-      // Initialize user data in Firestore if it doesn't exist
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        role: isTeacher ? "teacher" : "student",
-        createdAt: new Date().toISOString()
-      }, { merge: true })
-      
+      const role = isTeacher ? "teacher" : "student"
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          role,
+          discoverable: true,
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+      await syncPublicProfileFromAuthUser(user, { role })
+
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign in with Google")
@@ -62,15 +69,14 @@ function SignupForm({
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password)
       const user = result.user
-      
-      // Store role in Firestore
-      await setDoc(doc(db, "users", user.uid), {
+      const displayName = email.split("@")[0] || "Student"
+      await writeNewUserDocuments({
         uid: user.uid,
         email: user.email,
+        displayName,
         role: isTeacher ? "teacher" : "student",
-        createdAt: new Date().toISOString()
       })
-      
+
       router.push("/dashboard")
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign up")

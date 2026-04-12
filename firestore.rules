@@ -1,0 +1,182 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isTeacher() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userRole() in ['teacher', 'educator'];
+    }
+
+    function studyGroupData(groupId) {
+      return get(/databases/$(database)/documents/studygroups/$(groupId)).data;
+    }
+
+    function isStudyGroupMember(groupId) {
+      return signedIn() && request.auth.uid in studyGroupData(groupId).members;
+    }
+
+    // ----- Users & progress -----
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isUser(userId);
+    }
+
+    match /users/{userId}/courses/{courseId}/topics/{topicId} {
+      allow read: if signedIn() && (isUser(userId) || isTeacher());
+      allow create, update, delete: if isUser(userId);
+    }
+
+    // Directory (no email): People tab + member names. Synced from app when discoverable is true.
+    match /publicProfiles/{userId} {
+      allow read: if signedIn() && (
+        isUser(userId) ||
+        resource.data.discoverable == true
+      );
+      allow create, update: if isUser(userId)
+        && request.resource.data.keys().hasOnly([
+          "uid", "displayName", "photoURL", "role", "discoverable", "updatedAt"
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.discoverable is bool
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 100
+        && request.resource.data.role in ["student", "teacher"];
+      allow delete: if isUser(userId);
+    }
+
+    // ----- Classes, assignments, quizzes -----
+    match /classes/{classId} {
+      allow read, write: if signedIn();
+    }
+
+    match /assignments/{assignmentId} {
+      allow read, write: if signedIn();
+    }
+
+    match /quiz_results/{resultId} {
+      allow read, write: if signedIn();
+    }
+
+    match /submissions/{submissionId} {
+      allow read, write: if signedIn();
+    }
+
+    // ----- Community: discussions -----
+    // Public read so /community hub counts & browsing work when logged out; writes require auth.
+    match /topics/{topicId} {
+      allow read: if true;
+      allow write: if signedIn();
+      match /posts/{postId} {
+        allow read: if true;
+        allow write: if signedIn();
+      }
+    }
+
+    // ----- Study groups -----
+    // Public read for group list/detail when logged out. Chat is members-only (messages subcollection).
+    match /studygroups/{groupId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if signedIn();
+
+      match /challenges/{challengeId} {
+        allow read: if true;
+        allow write: if signedIn();
+      }
+
+      // Group chat: members only; text max 500; author may delete own message.
+      match /messages/{messageId} {
+        allow read: if isStudyGroupMember(groupId);
+
+        allow create: if isStudyGroupMember(groupId)
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 500
+          && request.resource.data.keys().hasOnly(["text", "authorId", "createdAt"]);
+
+        allow delete: if isStudyGroupMember(groupId)
+          && resource.data.authorId == request.auth.uid;
+
+        allow update: if false;
+      }
+    }
+
+    // ----- Peer review -----
+    match /peer-reviews/{peerId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.authorId == request.auth.uid;
+
+      allow update: if signedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        isTeacher()
+      );
+
+      allow delete: if signedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        isTeacher()
+      );
+
+      match /rubric/{rubricId} {
+        allow read, write: if signedIn();
+      }
+
+      match /reviews/{reviewId} {
+        allow read, write: if signedIn();
+      }
+    }
+
+    // ----- Schedule / sessions -----
+    match /sessions/{sessionId} {
+      allow read, write: if signedIn();
+    }
+
+    // ----- Notebook, challenges, wrong answers -----
+    match /notes/{noteId} {
+      allow read, write: if signedIn();
+    }
+
+    match /challenges/{challengeId} {
+      allow read, write: if signedIn();
+    }
+
+    match /wrong_answers/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    // ----- Gamification -----
+    match /user_stats/{userId} {
+      allow read, write: if signedIn();
+    }
+
+    // ----- Curriculum (editor / admin) -----
+    match /curriculum_settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+    }
+
+    // ----- Live sessions -----
+    match /liveSessions/{sessionId} {
+      allow read, write: if signedIn();
+    }
+
+    // ----- Parents -----
+    match /parents/{parentId} {
+      allow read, write: if signedIn();
+    }
+  }
+}

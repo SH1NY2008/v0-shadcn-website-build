@@ -6,7 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { subscribeToStudyGroups, createStudyGroup, deleteStudyGroup, type StudyGroup } from "@/lib/community";
+import {
+  subscribeToStudyGroups,
+  subscribeToDiscoverableProfiles,
+  createStudyGroup,
+  deleteStudyGroup,
+  type StudyGroup,
+} from "@/lib/community";
+import type { PublicProfile } from "@/lib/user-profile";
+import { syncPublicProfileFromAuthUser } from "@/lib/user-profile";
 import { useTeacherMode } from "@/context/teacher-mode-context";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { toast } from "sonner";
@@ -23,8 +31,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Users } from "lucide-react";
+import { Trash2, Users, UserRound, Link2 } from "lucide-react";
 import { StudyGroupSkeleton } from "@/components/study-group-skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function StudyGroupsPage() {
   const { userRole } = useTeacherMode();
@@ -35,6 +52,10 @@ export default function StudyGroupsPage() {
   const [newGroupTitle, setNewGroupTitle] = useState("");
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [people, setPeople] = useState<PublicProfile[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteFor, setInviteFor] = useState<PublicProfile | null>(null);
+  const [inviteGroupId, setInviteGroupId] = useState<string>("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -44,6 +65,11 @@ export default function StudyGroupsPage() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+    syncPublicProfileFromAuthUser(user).catch(() => undefined);
+  }, [user]);
+
+  useEffect(() => {
     const unsub = subscribeToStudyGroups((groups) => {
       setStudyGroups(groups);
       setLoading(false);
@@ -51,13 +77,55 @@ export default function StudyGroupsPage() {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      setPeople([]);
+      return;
+    }
+    const unsub = subscribeToDiscoverableProfiles(setPeople);
+    return () => unsub();
+  }, [user]);
+
+  const myMemberGroupIds = user
+    ? studyGroups.filter((g) => g.members.includes(user.uid)).map((g) => g.id)
+    : [];
+
   const handleCreateGroup = async () => {
     if (!user || !newGroupTitle || !newGroupDescription) return;
 
-    await createStudyGroup({ title: newGroupTitle, description: newGroupDescription });
+    await createStudyGroup(
+      { title: newGroupTitle, description: newGroupDescription },
+      { creatorId: user.uid }
+    );
     setNewGroupTitle("");
     setNewGroupDescription("");
     setIsCreateGroupOpen(false);
+  };
+
+  const openInvite = (profile: PublicProfile) => {
+    if (!user) {
+      toast.message("Sign in to invite people to a group.");
+      return;
+    }
+    if (myMemberGroupIds.length === 0) {
+      toast.message("Join a study group first, then you can copy an invite link to share.");
+      return;
+    }
+    setInviteFor(profile);
+    setInviteGroupId(myMemberGroupIds[0] ?? "");
+    setInviteOpen(true);
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteGroupId) return;
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/community/studygroups/${inviteGroupId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Invite link copied — share it so they can join.");
+      setInviteOpen(false);
+    } catch {
+      toast.error("Could not copy to clipboard.");
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -136,57 +204,176 @@ export default function StudyGroupsPage() {
           </Dialog>
         )}
       </div>
-      {studyGroups.length === 0 ? (
-        <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
-          <p className="text-xl font-black text-[#2C2C2C]">No study groups yet</p>
-          <p className="mt-2 font-bold text-[#2C2C2C]/60">
-            {user ? "Create the first group with the button above." : "Sign in to create a study group."}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {studyGroups.map((group) => (
-          <div key={group.id} className="relative">
-            {userRole === "teacher" && (
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute right-3 top-3 z-10 h-10 w-10 rounded-lg border-2 border-black shadow-md"
-                aria-label="Delete study group"
-                onClick={() => setDeleteTargetId(group.id)}
-              >
-                <Trash2 className="h-5 w-5" />
+
+      <Tabs defaultValue="groups" className="w-full gap-6">
+        <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-xl border-2 border-black/10 bg-white/90 p-2">
+          <TabsTrigger
+            value="groups"
+            className="rounded-lg font-black uppercase data-[state=active]:bg-[#006B6B] data-[state=active]:text-white"
+          >
+            Groups
+          </TabsTrigger>
+          <TabsTrigger
+            value="people"
+            className="rounded-lg font-black uppercase data-[state=active]:bg-[#006B6B] data-[state=active]:text-white"
+          >
+            <UserRound className="mr-2 h-4 w-4" />
+            People
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="groups" className="mt-6">
+          {studyGroups.length === 0 ? (
+            <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
+              <p className="text-xl font-black text-[#2C2C2C]">No study groups yet</p>
+              <p className="mt-2 font-bold text-[#2C2C2C]/60">
+                {user ? "Create the first group with the button above." : "Sign in to create a study group."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {studyGroups.map((group) => (
+                <div key={group.id} className="relative">
+                  {userRole === "teacher" && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute right-3 top-3 z-10 h-10 w-10 rounded-lg border-2 border-black shadow-md"
+                      aria-label="Delete study group"
+                      onClick={() => setDeleteTargetId(group.id)}
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  )}
+                  <Link href={`/community/studygroups/${group.id}`} className="block h-full">
+                    <div className="flex h-full flex-col justify-between rounded-2xl bg-[#FFC971] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)]">
+                      <div className={userRole === "teacher" ? "pr-12" : undefined}>
+                        <h3 className="text-3xl font-black uppercase tracking-tight text-[#2C2C2C]">{group.title}</h3>
+                        <p className="mt-2 text-lg font-bold text-[#2C2C2C]/60">{group.description}</p>
+                      </div>
+                      <div className="mt-6 flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-6 w-6 text-[#006B6B]" />
+                          <span className="text-lg font-bold text-[#006B6B]">{group.members.length} members</span>
+                        </div>
+                        <Button className="pointer-events-none h-12 rounded-xl border-2 border-black bg-[#006B6B] text-lg font-bold text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          View Group
+                        </Button>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="people" className="mt-6">
+          {!user ? (
+            <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
+              <p className="text-xl font-black text-[#2C2C2C]">Sign in to browse people</p>
+              <p className="mt-2 font-bold text-[#2C2C2C]/60">
+                Discoverable profiles are listed here. You can copy an invite link to a group you belong to.
+              </p>
+              <Button asChild className="mt-6 bg-[#006B6B] font-bold text-white">
+                <Link href="/login">Sign in</Link>
               </Button>
-            )}
-            <Link href={`/community/studygroups/${group.id}`} className="block h-full">
-              <div className="bg-[#FFC971] rounded-2xl p-8 h-full flex flex-col justify-between shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transition-shadow duration-300">
-                <div className={userRole === "teacher" ? "pr-12" : undefined}>
-                  <h3 className="text-3xl font-black text-[#2C2C2C] uppercase tracking-tight">{group.title}</h3>
-                  <p className="text-lg font-bold text-[#2C2C2C]/60 mt-2">{group.description}</p>
-                </div>
-                <div className="flex items-center justify-between mt-6">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-6 h-6 text-[#006B6B]" />
-                    <span className="font-bold text-lg text-[#006B6B]">{group.members.length} members</span>
-                  </div>
-                  <Button className="pointer-events-none bg-[#006B6B] text-white font-bold text-lg h-12 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    View Group
-                  </Button>
-                </div>
-              </div>
-            </Link>
-          </div>
-        ))}
-        </div>
-      )}
+            </div>
+          ) : people.filter((p) => p.uid !== user.uid).length === 0 ? (
+            <div className="rounded-2xl border-4 border-dashed border-black/15 bg-white/80 p-12 text-center">
+              <p className="text-xl font-black text-[#2C2C2C]">No one in the directory yet</p>
+              <p className="mt-2 font-bold text-[#2C2C2C]/60">
+                Profiles with discoverability on appear here after users sign in.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {people
+                .filter((p) => p.uid !== user.uid)
+                .map((p) => (
+                  <Card
+                    key={p.uid}
+                    className="border-4 border-black/10 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.08)]"
+                  >
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <Avatar className="h-12 w-12 border-2 border-black/10">
+                        <AvatarImage src={p.photoURL} alt="" />
+                        <AvatarFallback className="font-black">
+                          {(p.displayName || "?").charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-black text-[#2C2C2C]">{p.displayName}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#2C2C2C]/50">
+                          {p.role}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 border-2 border-black font-bold"
+                        onClick={() => openInvite(p)}
+                      >
+                        Invite
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
       <ConfirmationDialog
         open={!!deleteTargetId}
         onOpenChange={() => setDeleteTargetId(null)}
         onConfirm={handleConfirmDelete}
         title="Delete this study group?"
-        description="This permanently removes the group and its challenges. Members will lose access."
+        description="This permanently removes the group, its challenges, and group chat. Members will lose access."
       />
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="bg-[#FFC971] border-4 border-black">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase text-[#2C2C2C]">
+              Invite to group
+            </DialogTitle>
+            <DialogDescription className="font-bold text-[#2C2C2C]/70">
+              {inviteFor
+                ? `Copy a link to ${inviteFor.displayName} (they join when they open it).`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <Label className="font-bold text-[#2C2C2C]">Your group</Label>
+            <Select value={inviteGroupId} onValueChange={setInviteGroupId}>
+              <SelectTrigger className="border-2 border-black bg-white font-bold">
+                <SelectValue placeholder="Select a group" />
+              </SelectTrigger>
+              <SelectContent>
+                {studyGroups
+                  .filter((g) => user && g.members.includes(user.uid))
+                  .map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.title}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={copyInviteLink}
+              className="bg-[#006B6B] text-white font-bold border-2 border-black"
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              Copy invite link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }

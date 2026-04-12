@@ -1,5 +1,36 @@
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, increment, Timestamp, writeBatch } from "firebase/firestore";
+import type { PublicProfile } from "./user-profile";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  addDoc,
+  serverTimestamp,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc,
+  onSnapshot,
+  increment,
+  Timestamp,
+  writeBatch,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+
+/** Avoids Firestore SDK internal assertion noise when tearing down failed listeners. */
+function safeUnsubscribe(unsub: () => void) {
+  return () => {
+    try {
+      unsub();
+    } catch {
+      /* ignore */
+    }
+  };
+}
 
 /** Sort key for posts (handles Firestore Timestamp, Date, or plain objects with seconds). */
 function getCreatedAtMillis(data: { createdAt?: unknown }): number {
@@ -65,6 +96,16 @@ export interface Challenge {
     title: string;
     progress: number;
 }
+
+/** Group chat message (no images in v1). */
+export interface GroupMessage {
+  id: string;
+  text: string;
+  authorId: string;
+  createdAt: unknown;
+}
+
+export const MAX_GROUP_MESSAGE_LENGTH = 500;
 
 // Functions
 export async function getTopics(): Promise<Topic[]> {
@@ -305,23 +346,25 @@ export async function getStudyGroups(): Promise<StudyGroup[]> {
 /** Live list for study groups index (join/leave and new groups update without refresh). */
 export function subscribeToStudyGroups(callback: (groups: StudyGroup[]) => void) {
   const studyGroupsCol = collection(db, "studygroups");
-  return onSnapshot(
-    studyGroupsCol,
-    (snapshot) => {
-      const list = snapshot.docs.map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ...data,
-          members: Array.isArray(data.members) ? data.members : [],
-        } as StudyGroup;
-      });
-      callback(list);
-    },
-    (err) => {
-      console.error("subscribeToStudyGroups:", err);
-      callback([]);
-    }
+  return safeUnsubscribe(
+    onSnapshot(
+      studyGroupsCol,
+      (snapshot) => {
+        const list = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            ...data,
+            members: Array.isArray(data.members) ? data.members : [],
+          } as StudyGroup;
+        });
+        callback(list);
+      },
+      (err) => {
+        console.error("subscribeToStudyGroups:", err);
+        callback([]);
+      }
+    )
   );
 }
 
@@ -339,12 +382,16 @@ export async function getStudyGroup(id: string): Promise<StudyGroup | null> {
     return null;
 }
 
-export async function createStudyGroup(studyGroup: Omit<StudyGroup, 'id' | 'members'>) {
-    const studyGroupsCol = collection(db, "studygroups");
-    await addDoc(studyGroupsCol, {
-        ...studyGroup,
-        members: [],
-    });
+export async function createStudyGroup(
+  studyGroup: Omit<StudyGroup, "id" | "members">,
+  options?: { creatorId?: string }
+) {
+  const studyGroupsCol = collection(db, "studygroups");
+  const creatorId = options?.creatorId;
+  await addDoc(studyGroupsCol, {
+    ...studyGroup,
+    members: creatorId ? [creatorId] : [],
+  });
 }
 
 export async function joinStudyGroup(studyGroupId: string, userId: string) {
@@ -361,42 +408,124 @@ export async function leaveStudyGroup(studyGroupId: string, userId: string) {
     });
 }
 
-/** Deletes the study group document and all documents in the `challenges` subcollection. */
+/** Deletes the study group and all `challenges` and `messages` subcollection docs. */
 export async function deleteStudyGroup(studyGroupId: string): Promise<void> {
-  const challengesRef = collection(db, "studygroups", studyGroupId, "challenges");
-  const snap = await getDocs(challengesRef);
-  for (let i = 0; i < snap.docs.length; i += 500) {
-    const batch = writeBatch(db);
-    snap.docs.slice(i, i + 500).forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-  }
+  const deleteSubcollection = async (sub: string) => {
+    const ref = collection(db, "studygroups", studyGroupId, sub);
+    const snap = await getDocs(ref);
+    for (let i = 0; i < snap.docs.length; i += 500) {
+      const batch = writeBatch(db);
+      snap.docs.slice(i, i + 500).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  };
+  await deleteSubcollection("challenges");
+  await deleteSubcollection("messages");
   await deleteDoc(doc(db, "studygroups", studyGroupId));
 }
 
 export async function getStudyGroupMembers(studyGroupId: string): Promise<Member[]> {
-    const studyGroup = await getStudyGroup(studyGroupId);
-    if (!studyGroup) return [];
+  const studyGroup = await getStudyGroup(studyGroupId);
+  if (!studyGroup) return [];
 
-    const members: Member[] = [];
-    for (const userId of studyGroup.members) {
-        const userRef = doc(db, "users", userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const user = userSnap.data();
-            members.push({
-              id: userSnap.id,
-              name: user.displayName || user.email || "Student",
-              avatar: user.photoURL || "",
-            });
-        } else {
-            members.push({
-              id: userId,
-              name: "Community member",
-              avatar: "",
-            });
-        }
+  const members: Member[] = [];
+  for (const userId of studyGroup.members) {
+    const ppRef = doc(db, "publicProfiles", userId);
+    const ppSnap = await getDoc(ppRef);
+    if (ppSnap.exists()) {
+      const p = ppSnap.data() as Partial<PublicProfile>;
+      members.push({
+        id: userId,
+        name: p.displayName || "Member",
+        avatar: p.photoURL || "",
+      });
+    } else {
+      members.push({
+        id: userId,
+        name: "Member",
+        avatar: "",
+      });
     }
-    return members;
+  }
+  return members;
+}
+
+/** Directory: discoverable profiles only (no email in documents). */
+export function subscribeToDiscoverableProfiles(
+  callback: (profiles: PublicProfile[]) => void
+) {
+  const q = query(
+    collection(db, "publicProfiles"),
+    where("discoverable", "==", true),
+    orderBy("displayName"),
+    limit(200)
+  );
+  return safeUnsubscribe(
+    onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            uid: d.id,
+            ...data,
+          } as PublicProfile;
+        });
+        callback(list);
+      },
+      (err) => {
+        console.error("subscribeToDiscoverableProfiles:", err);
+        callback([]);
+      }
+    )
+  );
+}
+
+export async function sendStudyGroupMessage(
+  studyGroupId: string,
+  authorId: string,
+  text: string
+): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > MAX_GROUP_MESSAGE_LENGTH) return;
+  await addDoc(collection(db, "studygroups", studyGroupId, "messages"), {
+    text: trimmed,
+    authorId,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export function subscribeToStudyGroupMessages(
+  studyGroupId: string,
+  callback: (messages: GroupMessage[]) => void
+) {
+  const q = query(
+    collection(db, "studygroups", studyGroupId, "messages"),
+    orderBy("createdAt", "desc"),
+    limit(80)
+  );
+  return safeUnsubscribe(
+    onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as GroupMessage))
+          .reverse();
+        callback(list);
+      },
+      (err) => {
+        console.error("subscribeToStudyGroupMessages:", err);
+        callback([]);
+      }
+    )
+  );
+}
+
+export async function deleteStudyGroupMessage(
+  studyGroupId: string,
+  messageId: string
+): Promise<void> {
+  await deleteDoc(doc(db, "studygroups", studyGroupId, "messages", messageId));
 }
 
 export async function getStudyGroupChallenges(studyGroupId: string): Promise<Challenge[]> {
